@@ -46,6 +46,6 @@ setup(
         'Topic :: Utilities',
     ],
 
-    modules=['muffin_session'],
+    py_modules=['muffin_session'],
     install_requires=install_requires,
 )
