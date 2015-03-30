@@ -19,7 +19,7 @@ from muffin.plugins import BasePlugin
 from muffin.utils import create_signature, check_signature, to_coroutine
 
 
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 __project__ = "muffin-session"
 __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
