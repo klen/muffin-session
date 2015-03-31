@@ -44,7 +44,8 @@ class Plugin(BasePlugin):
         super().setup(app)
 
         if self.options['secret'] == 'InsecureSecret':
-            app.logger.warn('Use insecure secret key. Change AUTH_SECRET option in configuration.')
+            app.logger.warn(
+                'Use insecure secret key. Change SESSION_SECRET option in configuration.')
 
         self._user_loader = asyncio.coroutine(lambda id_: id_)
 
