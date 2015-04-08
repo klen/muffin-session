@@ -24,6 +24,15 @@ def app(loop):
         yield from app.ps.session.logout(request)
         return muffin.HTTPFound('/')
 
+    @app.register('/session')
+    def session(request):
+        return dict(request.session)
+
+    @app.register('/error')
+    def error(request):
+        request.session['name'] = 'value'
+        raise muffin.HTTPForbidden()
+
     return app
 
 
@@ -37,6 +46,16 @@ def test_muffin_session(app, client):
     response = client.get('/auth')
     assert 'mike' in response.text
 
+    response = client.get('/session')
+    assert response.json == {'id': 'mike'}
+
+    client.get('/error', status=403)
+    response = client.get('/session')
+    assert 'name' in response.json
+
     client.get('/logout')
     response = client.get('/auth')
     assert response.status_code == 302
+
+    response = client.get('/session')
+    assert 'id' not in response.json

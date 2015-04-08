@@ -14,7 +14,7 @@ import time
 
 import ujson as json
 
-from muffin import HTTPFound
+from muffin import HTTPFound, HTTPException
 from muffin.plugins import BasePlugin
 from muffin.utils import create_signature, check_signature, to_coroutine
 
@@ -58,10 +58,17 @@ class Plugin(BasePlugin):
             request.session = Session(self.options['secret'])
             request.session.load(request.cookies)
             app.logger.debug('Started: %s', request.session)
-            response = yield from handler(request)
-            app.logger.debug('Ended: %s', request.session)
-            request.session.save(response.set_cookie)
-            return response
+            try:
+                response = yield from handler(request)
+                app.logger.debug('Ended: %s', request.session)
+                request.session.save(response.set_cookie)
+                return response
+
+            except HTTPException as response:
+                app.logger.debug('Ended: %s', request.session)
+                request.session.save(response.set_cookie)
+                raise
+
         return middleware
 
     def user_loader(self, func):
@@ -131,6 +138,11 @@ class Session(dict):
             if not isinstance(value, str):
                 value = value.encode(self.encoding)
             set_cookie(self.key, value, **self.params)
+
+    def __setitem__(self, name, value):
+        if isinstance(value, (dict, list, tuple, set)):
+            value = json.dumps(value)
+        super().__setitem__(name, value)
 
     def load(self, cookies, **kwargs):
         value = cookies.get(self.key, None)
