@@ -14,7 +14,7 @@ import time
 
 import ujson as json
 
-from muffin import HTTPFound, HTTPException
+from muffin import HTTPFound, HTTPException, Response
 from muffin.plugins import BasePlugin
 from muffin.utils import create_signature, check_signature, to_coroutine
 
@@ -27,6 +27,8 @@ __license__ = "MIT"
 
 FUNC = lambda x: x # noqa
 
+SESSION_KEY = 'session'
+
 
 class Plugin(BasePlugin):
 
@@ -37,6 +39,7 @@ class Plugin(BasePlugin):
         'default_user_checker': lambda x: x,
         'login_url': '/login',
         'secret': 'InsecureSecret',
+        'auto_load': False,
     }
 
     def setup(self, app):
@@ -55,18 +58,16 @@ class Plugin(BasePlugin):
         @asyncio.coroutine
         def middleware(request):
             """ Load a session from users cookies. """
-            request.session = Session(self.options['secret'])
-            request.session.load(request.cookies)
-            app.logger.debug('Started: %s', request.session)
+            if self.options.auto_load:
+                yield from self.load(request)
+
             try:
                 response = yield from handler(request)
-                app.logger.debug('Ended: %s', request.session)
-                request.session.save(response.set_cookie)
+                self.save(request, response)
                 return response
 
             except HTTPException as response:
-                app.logger.debug('Ended: %s', request.session)
-                request.session.save(response.set_cookie)
+                self.save(request, response)
                 raise
 
         return middleware
@@ -77,12 +78,30 @@ class Plugin(BasePlugin):
         return self._user_loader
 
     @asyncio.coroutine
+    def load(self, request):
+        """ Load session from cookies. """
+        if SESSION_KEY not in request:
+            session = Session(self.options['secret'])
+            session.load(request.cookies)
+            self.app.logger.debug('Session loaded: %s', session)
+            request[SESSION_KEY] = request.session = session
+        return request[SESSION_KEY]
+
+    __call__ = load
+
+    def save(self, request, response):
+        if isinstance(response, Response) and SESSION_KEY in request and not response.started:
+            session = request[SESSION_KEY]
+            self.app.logger.debug('Session saved: %s', session)
+            session.save(response.set_cookie)
+
+    @asyncio.coroutine
     def load_user(self, request):
         """ Load user from request. """
-        _id = request.session.get('id')
-        if not _id:
+        session = yield from self.load(request)
+        if 'id' not in session:
             return None
-        request.user = yield from self._user_loader(_id)
+        request.user = yield from self._user_loader(session['id'])
         return request.user
 
     @asyncio.coroutine
@@ -107,17 +126,17 @@ class Plugin(BasePlugin):
 
         return wrapper
 
-    @staticmethod
     @asyncio.coroutine
-    def login(request, id):
+    def login(self, request, id):
         """ Login an user by ID. """
-        request.session['id'] = id
+        session = yield from self.load(request)
+        session['id'] = id
 
-    @staticmethod
     @asyncio.coroutine
-    def logout(request):
+    def logout(self, request):
         """ Logout an user. """
-        del request.session['id']
+        session = yield from self.load(request)
+        del session['id']
 
 
 class Session(dict):
@@ -148,6 +167,7 @@ class Session(dict):
         value = cookies.get(self.key, None)
         if value is None:
             return False
+
         value = self.decrypt(value)
         if not value:
             return False

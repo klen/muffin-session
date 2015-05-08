@@ -26,11 +26,14 @@ def app(loop):
 
     @app.register('/session')
     def session(request):
-        return dict(request.session)
+        session = yield from app.ps.session(request)
+        return dict(session)
 
     @app.register('/error')
     def error(request):
-        request.session['name'] = 'value'
+        session = yield from app.ps.session(request)
+        session = yield from app.ps.session(request)
+        session['name'] = 'value'
         raise muffin.HTTPForbidden()
 
     return app

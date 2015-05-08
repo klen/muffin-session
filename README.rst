@@ -46,17 +46,23 @@ Installation
 Usage
 =====
 
-Add **muffin_peewee** to **PLUGINS** in your Muffin Application configuration.
+* Add **muffin_session** to **PLUGINS** in your Application configuration.
+* Setup options if needed (see bellow).
 
 Options
 -------
 
-**SESSION_DEFAULT_USER_CHECKER** -- A function which checks logged user (lambda x: x)
-**SESSION_LOGIN_URL** -- Redirect URL ('/login')
-**SESSION_SECRET** -- A secret code ('Insecuresecret')
+`SESSION_DEFAULT_USER_CHECKER` -- A function which checks logged user (lambda x: x)
 
-Views
------
+`SESSION_LOGIN_URL` -- Redirect URL ('/login')
+
+`SESSION_SECRET`    -- A secret code ('Insecuresecret')
+
+`SESSION_AUTO_LOAD` -- Load session every request automatically
+                       Session will be loaded into `request.session`.
+
+Examples
+--------
 
 ::
 
@@ -64,6 +70,11 @@ Views
     def load_user(_id):
         """Define your own user loader. """
 
+    @app.register('/session')
+    def get_session(request):
+        """ Load session and return it as JSON. """
+        session = yield from app.ps.session(request)
+        return dict(session)
 
     @app.register('/admin')
     @app.ps.session.user_pass(lambda u: u.is_admin)
@@ -75,7 +86,7 @@ Views
     def login(request):
         """ Login user. """
         # ...
-        yield from app.ps.session.login(curuser.pk)
+        yield from app.ps.session.login(current_user.pk)
 
 
     @app.register('/logout')
