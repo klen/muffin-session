@@ -136,7 +136,8 @@ class Plugin(BasePlugin):
     def logout(self, request):
         """ Logout an user. """
         session = yield from self.load(request)
-        del session['id']
+        if 'id' in session:
+            del session['id']
 
 
 class Session(dict):
