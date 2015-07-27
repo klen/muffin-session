@@ -36,17 +36,17 @@ class Plugin(BasePlugin):
 
     name = 'session'
     defaults = {
+        'auto_load': False,
         'default_user_checker': lambda x: x,
         'login_url': '/login',
         'secret': 'InsecureSecret',
-        'auto_load': False,
     }
 
     def setup(self, app):
         """ Initialize the application. """
         super().setup(app)
 
-        if self.options['secret'] == 'InsecureSecret':
+        if self.cfg.secret == 'InsecureSecret':
             app.logger.warn(
                 'Use insecure secret key. Change SESSION_SECRET option in configuration.')
 
@@ -58,7 +58,7 @@ class Plugin(BasePlugin):
         @asyncio.coroutine
         def middleware(request):
             """ Load a session from users cookies. """
-            if self.options.auto_load:
+            if self.cfg.auto_load:
                 yield from self.load(request)
 
             try:
@@ -81,7 +81,7 @@ class Plugin(BasePlugin):
     def load(self, request):
         """ Load session from cookies. """
         if SESSION_KEY not in request:
-            session = Session(self.options['secret'])
+            session = Session(self.cfg.secret)
             session.load(request.cookies)
             self.app.logger.debug('Session loaded: %s', session)
             request[SESSION_KEY] = request.session = session
@@ -108,9 +108,9 @@ class Plugin(BasePlugin):
     def check_user(self, request, func=FUNC, location=None, **kwargs):
         """ Check for user is logged and pass func. """
         user = yield from self.load_user(request)
-        func = func or self.options.default_user_checker
+        func = func or self.cfg.default_user_checker
         if not func(user):
-            raise HTTPFound(location or self.options.login_url, **kwargs)
+            raise HTTPFound(location or self.cfg.login_url, **kwargs)
         return user
 
     def user_pass(self, func=None, location=None, **rkwargs):

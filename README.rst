@@ -52,14 +52,14 @@ Usage
 Options
 -------
 
+`SESSION_AUTO_LOAD` -- Load session every request automatically
+                       Session will be loaded into `request.session`.
+
 `SESSION_DEFAULT_USER_CHECKER` -- A function which checks logged user (lambda x: x)
 
 `SESSION_LOGIN_URL` -- Redirect URL ('/login')
 
 `SESSION_SECRET`    -- A secret code ('Insecuresecret')
-
-`SESSION_AUTO_LOAD` -- Load session every request automatically
-                       Session will be loaded into `request.session`.
 
 Examples
 --------

@@ -69,7 +69,7 @@ $(VIRTUAL_ENV): requirements.txt
 
 $(VIRTUAL_ENV)/bin/py.test: $(VIRTUAL_ENV) requirements-tests.txt
 	@$(VIRTUAL_ENV)/bin/pip install -r requirements-tests.txt
-	@touch $(VIRTUALENV)/bin/py.test
+	@touch $(VIRTUAL_ENV)/bin/py.test
 
 .PHONY: test
 # target: test - Runs tests
