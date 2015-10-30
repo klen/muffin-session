@@ -2,16 +2,13 @@
 
 # Package information
 # ===================
-
-
 import asyncio
 import base64
 import functools
 import time
 
 import ujson as json
-
-from muffin import HTTPFound, HTTPException, Response
+from muffin import HTTPFound, Response
 from muffin.plugins import BasePlugin
 from muffin.utils import create_signature, check_signature, to_coroutine
 
@@ -29,26 +26,17 @@ USER_KEY = 'user'
 
 
 @asyncio.coroutine
-def session_middleware_factory(app, handler):
-    """Create middleware for Sessions."""
+def session_autoload_middleware_factory(app, handler):
+    """Create middleware for auto loading sessions."""
     sessions = app.ps.session
 
     @asyncio.coroutine
-    def session_middleware(request):
-        """Load a session from users cookies."""
-        if sessions.cfg.auto_load:
-            yield from sessions.load(request)
+    def session_autoload_middleware(request):
+        """Load a session to request."""
+        yield from sessions.load(request)
+        return (yield from handler(request))
 
-        try:
-            response = yield from handler(request)
-            sessions.save(request, response)
-            return response
-
-        except HTTPException as response:
-            sessions.save(request, response)
-            raise
-
-    return session_middleware
+    return session_autoload_middleware
 
 
 class Plugin(BasePlugin):
@@ -73,7 +61,10 @@ class Plugin(BasePlugin):
 
         self._user_loader = asyncio.coroutine(lambda id_: id_)  # noqa
 
-        app.middlewares.append(session_middleware_factory)
+        app.on_response_prepare.append(self.save)
+
+        if self.cfg.auto_load:
+            app.middlewares.append(session_autoload_middleware_factory)
 
     def user_loader(self, func):
         """Register a function as user loader."""
