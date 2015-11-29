@@ -8,7 +8,8 @@ def app(loop):
     app = muffin.Application(
         'session', loop=loop,
 
-        PLUGINS=['muffin_session'])
+        PLUGINS=['muffin_session'],
+    )
 
     @app.register('/auth')
     @app.ps.session.user_pass()
@@ -56,6 +57,22 @@ def app(loop):
 
     return app
 
+@pytest.fixture(scope='session')
+def app_dyn(loop):
+    app_dyn = muffin.Application(
+        'session_dyn', loop=loop,
+
+        PLUGINS=['muffin_session'],
+        SESSION_LOGIN_URL = lambda req: '/login?return='+req.path,
+    )
+
+    @app_dyn.register('/auth')
+    @app_dyn.ps.session.user_pass()
+    def auth(request):
+        return request.user
+
+    return app_dyn
+
 
 def test_muffin_session(app, client):
     assert app.ps.session
@@ -94,3 +111,11 @@ def test_muffin_session(app, client):
 
     response = client.get('/session')
     assert 'id' not in response.json
+
+def test_muffin_session_dyn(app_dyn, client):
+    assert app_dyn.ps.session
+    assert type(app_dyn.ps.session.cfg.login_url).__name__ == 'function'
+
+    response = client.get('/auth')
+    assert response.status_code == 302
+    assert response.headers['location'] == '/login?redir=/auth'
