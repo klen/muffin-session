@@ -110,6 +110,8 @@ class Plugin(BasePlugin):
         if not func(user):
             while callable(location):
                 location = location(request)
+                while asyncio.iscoroutine(location):
+                    location = yield from location
             raise HTTPFound(location or self.cfg.login_url, **kwargs)
         return user
 
