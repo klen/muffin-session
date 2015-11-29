@@ -108,6 +108,8 @@ class Plugin(BasePlugin):
         user = yield from self.load_user(request)
         func = func or self.cfg.default_user_checker
         if not func(user):
+            while callable(location):
+                location = location(request)
             raise HTTPFound(location or self.cfg.login_url, **kwargs)
         return user
 
