@@ -112,11 +112,12 @@ class Plugin(BasePlugin):
         user = yield from self.load_user(request)
         func = func or self.cfg.default_user_checker
         if not func(user):
+            location = location or self.cfg.login_url
             while callable(location):
                 location = location(request)
                 while asyncio.iscoroutine(location):
                     location = yield from location
-            raise HTTPFound(location or self.cfg.login_url, **kwargs)
+            raise HTTPFound(location, **kwargs)
         return user
 
     def user_pass(self, func=None, location=None, **rkwargs):
