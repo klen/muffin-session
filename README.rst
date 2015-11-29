@@ -53,7 +53,8 @@ Options
 
 `SESSION_DEFAULT_USER_CHECKER` -- A function which checks logged user (lambda x: x)
 
-`SESSION_LOGIN_URL` -- Redirect URL ('/login')
+`SESSION_LOGIN_URL` -- Redirect URL ('/login'), or it may be a function
+which accepts `request` object and returns a string.
 
 `SESSION_SECRET`    -- A secret code ('Insecuresecret')
 
