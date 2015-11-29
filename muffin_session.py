@@ -19,8 +19,6 @@ __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
 
 
-FUNC = lambda x: x # noqa
-
 SESSION_KEY = 'session'
 USER_KEY = 'user'
 
@@ -103,7 +101,7 @@ class Plugin(BasePlugin):
         return request[USER_KEY]
 
     @asyncio.coroutine
-    def check_user(self, request, func=FUNC, location=None, **kwargs):
+    def check_user(self, request, func=None, location=None, **kwargs):
         """
         Check for user is logged and pass the given func.
         :param func: user checker function, defaults to default_user_checker
