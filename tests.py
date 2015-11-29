@@ -44,6 +44,7 @@ def test_muffin_session(app, client):
 
     response = client.get('/auth')
     assert response.status_code == 302
+    assert response.headers['location'] == '/login'
 
     client.get('/login', {'name': 'mike'})
     response = client.get('/auth')
@@ -59,9 +60,11 @@ def test_muffin_session(app, client):
     client.get('/logout')
     response = client.get('/auth')
     assert response.status_code == 302
+    assert response.headers['location'] == '/login'
 
     response = client.get('/logout')
     assert response.status_code == 302
+    assert response.headers['location'] == '/'
 
     response = client.get('/session')
     assert 'id' not in response.json
