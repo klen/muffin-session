@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 import muffin
 
 
@@ -20,6 +21,15 @@ def app(loop):
     @app.register('/auth_dyn')
     @app.ps.session.user_pass(location=determine_redir)
     def auth_dyn(request):
+        return request.user
+
+    @asyncio.coroutine
+    def determine_redir_async(request):
+        return request.GET.get('target')
+
+    @app.register('/auth_dyn_async')
+    @app.ps.session.user_pass(location=determine_redir)
+    def auth_dyn_async(request):
         return request.user
 
     @app.register('/login')
@@ -55,6 +65,10 @@ def test_muffin_session(app, client):
     assert response.headers['location'] == '/login'
 
     response = client.get('/auth_dyn', {'target': '/another_page'})
+    assert response.status_code == 302
+    assert response.headers['location'] == '/another_page'
+
+    response = client.get('/auth_dyn_async', {'target': '/another_page'})
     assert response.status_code == 302
     assert response.headers['location'] == '/another_page'
 
