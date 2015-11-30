@@ -1,3 +1,8 @@
+2015-11-30  k.klenov
+
+	* 0.2.0
+	* Allow specifying login url as a function (dynamic redirect) (c) Semyon Maryasin 
+
 2015-03-30  klen
 
 	* Version 0.1.0
