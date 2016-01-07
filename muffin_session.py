@@ -21,6 +21,7 @@ __license__ = "MIT"
 
 SESSION_KEY = 'session'
 USER_KEY = 'user'
+FLASHES_KEY = '_flashes'
 
 
 @asyncio.coroutine
@@ -147,6 +148,37 @@ class Plugin(BasePlugin):
         if 'id' in session:
             del session['id']
 
+    @asyncio.coroutine
+    def flash(self, request, message, category='message'):
+        """
+        Add a message to be flashes on next request.
+        """
+        session = yield from self.load(request)
+        flashes = session.get(FLASHES_KEY, [])
+        if isinstance(flashes, str):
+            flashes = json.loads(flashes)
+        flashes.append((category, message))
+        session[FLASHES_KEY] = flashes
+
+    def get_flashed_messages(request, with_categories=False, category_fileter=[]):
+        """
+        Retrieve flashed messages.
+        Important: this is not a coroutine,
+        and as such it requires you to call `app.ps.session.load` beforehand!
+        For example, if you call `load_user` then it is okay.
+        """
+        if SESSION_KEY not in request:
+            raise ValueError('Please call '
+                             '`await app.ps.session.load(request)` beforehand!')
+        session = request[SESSION_KEY]
+        flashes = session.pop(FLASHES_KEY, [])
+        if isinstance(flashes, str):
+            flashes = json.loads(flashes)
+        if category_filter:
+            flashes = list(filter(lambda f: f[0] in category_filter, flashes))
+        if not with_categories:
+            return [f[1] for f in flashes]
+        return flashes
 
 class Session(dict):
 
