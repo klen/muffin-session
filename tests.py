@@ -55,6 +55,16 @@ def app(loop):
         session['name'] = 'value'
         raise muffin.HTTPForbidden()
 
+    @app.register('/flash')
+    def flash(request):
+        yield from app.ps.session.flash(request, request.GET.get('message'))
+        return 'ok'
+
+    @app.register('/flash_get')
+    def flash_get(request):
+        msgs = (yield from app.ps.session.get_flashed_messages(request))
+        return msgs
+
     return app
 
 def test_muffin_session(app, client):
@@ -95,6 +105,7 @@ def test_muffin_session(app, client):
     response = client.get('/session')
     assert 'id' not in response.json
 
+def test_muffin_session_redirect_url(app, client):
     # FIXME it is a hack, but having two fixtures doesn't work
     object.__setattr__(app.ps.session.cfg, '_lock', False)
     app.ps.session.cfg.login_url = lambda request: '/login?redir='+request.path
@@ -102,3 +113,24 @@ def test_muffin_session(app, client):
     response = client.get('/auth')
     assert response.status_code == 302
     assert response.headers['location'] == '/login?redir=/auth'
+
+def test_muffin_session_flash(app, client):
+    # add one message
+    response = client.get('/flash?message=Hello')
+    assert response.status_code == 200
+    assert response.text == 'ok'
+
+    # add another message
+    response = client.get('/flash?message=abc')
+
+    # check that both messages are present
+    response = client.get('/flash_get')
+    assert response.status_code == 200
+    assert 'Hello' in response.json
+    assert 'abc' in response.json
+
+    # check that both messages were removed in previous request
+    response = client.get('/flash_get')
+    assert response.status_code == 200
+    assert response == []
+
