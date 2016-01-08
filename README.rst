@@ -104,6 +104,8 @@ Examples
         This can be included in any endpoint which outputs regular page.
         If you use jinja2 or other templating engine,
         you will need to pass `request` to its context somehow.
+        Also this plugin will register `get_flashed_messages` function in Jinja2 context,
+        but only if Jinja2 plugin was loaded before this one.
         """
         # first we want to ensure that session is loaded,
         yield from app.ps.session.load()

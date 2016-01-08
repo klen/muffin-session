@@ -65,6 +65,9 @@ class Plugin(BasePlugin):
         if self.cfg.auto_load:
             app.middlewares.append(session_autoload_middleware_factory)
 
+        if 'jinja2' in app.ps:
+            app.ps.jinja2.register(self.get_flashed_messages)
+
     def user_loader(self, func):
         """Register a function as user loader."""
         self._user_loader = to_coroutine(func)  # noqa
