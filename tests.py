@@ -132,5 +132,5 @@ def test_muffin_session_flash(app, client):
     # check that both messages were removed in previous request
     response = client.get('/flash_get')
     assert response.status_code == 200
-    assert response == []
+    assert response.json == []
 
