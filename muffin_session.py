@@ -160,17 +160,26 @@ class Plugin(BasePlugin):
         flashes.append((category, message))
         session[FLASHES_KEY] = flashes
 
-    def get_flashed_messages(request, with_categories=False, category_fileter=[]):
+    def get_flashed_messages(self, session,
+                             with_categories=False, category_filter=[]):
         """
         Retrieve flashed messages.
         Important: this is not a coroutine,
         and as such it requires you to call `app.ps.session.load` beforehand!
         For example, if you call `load_user` then it is okay.
+
+        Or you can use async version of this method.
+
+        First argument can be either already-loaded Session
+        or a request object (if session was loaded before).
         """
-        if SESSION_KEY not in request:
-            raise ValueError('Please call '
-                             '`await app.ps.session.load(request)` beforehand!')
-        session = request[SESSION_KEY]
+        if not isinstance(session, Session):
+            # this is probably a request; try to get session from it
+            request = session
+            if SESSION_KEY not in request:
+                raise ValueError('Please call '
+                                '`await app.ps.session.load(request)` beforehand!')
+            session = request[SESSION_KEY]
         flashes = session.pop(FLASHES_KEY, [])
         if isinstance(flashes, str):
             flashes = json.loads(flashes)
@@ -179,6 +188,15 @@ class Plugin(BasePlugin):
         if not with_categories:
             return [f[1] for f in flashes]
         return flashes
+    @asyncio.coroutine
+    def get_flashed_messages_async(self, request,
+                                   with_categories=False, category_filter=[]):
+        """
+        Retrieve flashed messages.
+        This is a coroutine, and it will load session if needed.
+        """
+        session = yield from app.ps.session(request)
+        return self.get_flashed_messages(session, with_categories, category_filter)
 
 class Session(dict):
 
