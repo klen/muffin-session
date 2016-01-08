@@ -198,7 +198,7 @@ class Plugin(BasePlugin):
         Retrieve flashed messages.
         This is a coroutine, and it will load session if needed.
         """
-        session = yield from app.ps.session(request)
+        session = yield from self.load(request)
         return self.get_flashed_messages(session, with_categories, category_filter)
 
 class Session(dict):
