@@ -87,9 +87,32 @@ Examples
 
 
     @app.register('/logout')
+    def logout(request):
         """ Logout user. """
         # ...
         yield from app.ps.session.logout(curuser.pk)
+
+    @app.register('/somewhere')
+    def somewhere(request):
+        """ Do something and leave a flash message """
+        # ...
+        yield from app.ps.session.flash('Something done successfully')
+
+    @app.register('/common')
+    def common_page(request):
+        """
+        This can be included in any endpoint which outputs regular page.
+        If you use jinja2 or other templating engine,
+        you will need to pass `request` to its context somehow.
+        """
+        # first we want to ensure that session is loaded,
+        yield from app.ps.session.load()
+        # this method is *not* a coroutine, so it can be used in templates
+        messages = app.ps.session.get_flashed_messages()
+        return (
+            "<html><body><header>%s</header> Other content </body></html>" %
+            '<br/>'.join(messages)
+        )
 
 
 .. _bugtracker:
