@@ -62,7 +62,7 @@ def app(loop):
 
     @app.register('/flash_get')
     def flash_get(request):
-        msgs = (yield from app.ps.session.get_flashed_messages(request))
+        msgs = (yield from app.ps.session.get_flashed_messages_async(request))
         return msgs
 
     return app
