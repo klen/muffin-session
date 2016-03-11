@@ -153,9 +153,7 @@ class Plugin(BasePlugin):
 
     @asyncio.coroutine
     def flash(self, request, message, category='message'):
-        """
-        Add a message to be flashes on next request.
-        """
+        """Add a message to be flashes on next request."""
         session = yield from self.load(request)
         flashes = session.get(FLASHES_KEY, [])
         if isinstance(flashes, str):
@@ -163,12 +161,13 @@ class Plugin(BasePlugin):
         flashes.append((category, message))
         session[FLASHES_KEY] = flashes
 
-    def get_flashed_messages(self, session,
-                             with_categories=False, category_filter=[]):
-        """
-        Retrieve flashed messages.
-        Important: this is not a coroutine,
-        and as such it requires you to call `app.ps.session.load` beforehand!
+    @staticmethod
+    def get_flashed_messages(session, with_categories=False, category_filter=None):
+        """Retrieve flashed messages.
+
+        Important: this is not a coroutine, and as such it requires you to
+        call `app.ps.session.load` beforehand!
+
         For example, if you call `load_user` then it is okay.
 
         Or you can use async version of this method.
@@ -180,26 +179,30 @@ class Plugin(BasePlugin):
             # this is probably a request; try to get session from it
             request = session
             if SESSION_KEY not in request:
-                raise ValueError('Please call '
-                                '`await app.ps.session.load(request)` beforehand!')
+                raise ValueError('Please call `await app.ps.session.load(request)` beforehand!')
             session = request[SESSION_KEY]
+
         flashes = session.pop(FLASHES_KEY, [])
         if isinstance(flashes, str):
             flashes = json.loads(flashes)
+
         if category_filter:
             flashes = list(filter(lambda f: f[0] in category_filter, flashes))
+
         if not with_categories:
             return [f[1] for f in flashes]
+
         return flashes
+
     @asyncio.coroutine
-    def get_flashed_messages_async(self, request,
-                                   with_categories=False, category_filter=[]):
-        """
-        Retrieve flashed messages.
+    def get_flashed_messages_async(self, request, with_categories=False, category_filter=None):
+        """Retrieve flashed messages.
+
         This is a coroutine, and it will load session if needed.
         """
         session = yield from self.load(request)
         return self.get_flashed_messages(session, with_categories, category_filter)
+
 
 class Session(dict):
 
