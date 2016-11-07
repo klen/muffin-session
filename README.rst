@@ -58,6 +58,10 @@ which accepts `request` object and returns a string.
 
 `SESSION_SECRET` -- A secret code ('Insecuresecret')
 
+`SESSION_MAX_AGE` -- # Defines the lifetime of the session-cookie, in seconds
+
+`SESSION_DOMAIN` -- # Defines session-cookie domain
+
 Examples
 --------
 

@@ -47,7 +47,9 @@ class Plugin(BasePlugin):
         'auto_load': False,
         'default_user_checker': lambda x: x,
         'login_url': '/login',
-        'secret': 'InsecureSecret',
+        'secret': 'InsecureSecret',  # Secret is using for secure the session
+        'max_age': None,  # Defines the lifetime of the session-cookie, in seconds
+        'domain': None,  # Defines session-cookie domain
     }
 
     def setup(self, app):
@@ -77,7 +79,7 @@ class Plugin(BasePlugin):
     def load(self, request):
         """Load session from cookies."""
         if SESSION_KEY not in request:
-            session = Session(self.cfg.secret)
+            session = Session(self.cfg.secret, max_age=self.cfg.max_age, domain=self.cfg.domain)
             session.load(request.cookies)
             self.app.logger.debug('Session loaded: %s', session)
             request[SESSION_KEY] = request.session = session
@@ -218,7 +220,7 @@ class Session(dict):
         self.params = params
         self.store = {}
 
-    def save(self, set_cookie):
+    def save(self, set_cookie, **params):
         """Update cookies if the session has been changed."""
         if set(self.store.items()) ^ set(self.items()):
             value = dict(self.items())
