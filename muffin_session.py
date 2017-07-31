@@ -50,6 +50,7 @@ class Plugin(BasePlugin):
         'secret': 'InsecureSecret',  # Secret is using for secure the session
         'max_age': None,  # Defines the lifetime of the session-cookie, in seconds
         'domain': None,  # Defines session-cookie domain
+        'session_cookie': 'session',
     }
 
     def setup(self, app):
@@ -79,7 +80,8 @@ class Plugin(BasePlugin):
     def load(self, request):
         """Load session from cookies."""
         if SESSION_KEY not in request:
-            session = Session(self.cfg.secret, max_age=self.cfg.max_age, domain=self.cfg.domain)
+            session = Session(self.cfg.secret, key=self.cfg.session_cookie,
+                              max_age=self.cfg.max_age, domain=self.cfg.domain)
             session.load(request.cookies)
             self.app.logger.debug('Session loaded: %s', session)
             request[SESSION_KEY] = request.session = session
