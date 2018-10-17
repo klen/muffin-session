@@ -6,6 +6,7 @@ import asyncio
 import base64
 import functools
 import time
+from aiohttp.web import middleware
 
 import ujson as json
 from muffin import HTTPFound, Response
@@ -21,21 +22,6 @@ __license__ = "MIT"
 
 SESSION_KEY = 'session'
 USER_KEY = 'user'
-FLASHES_KEY = '_flashes'
-
-
-@asyncio.coroutine
-def session_autoload_middleware_factory(app, handler):
-    """Create middleware for auto loading sessions."""
-    sessions = app.ps.session
-
-    @asyncio.coroutine
-    def session_autoload_middleware(request):
-        """Load a session to request."""
-        yield from sessions.load(request)
-        return (yield from handler(request))
-
-    return session_autoload_middleware
 
 
 class Plugin(BasePlugin):
@@ -66,18 +52,21 @@ class Plugin(BasePlugin):
         app.on_response_prepare.append(self.save)
 
         if self.cfg.auto_load:
-            app.middlewares.append(session_autoload_middleware_factory)
+            app.middlewares.append(self._middleware)
 
-        if 'jinja2' in app.ps:
-            app.ps.jinja2.register(self.get_flashed_messages)
+    async def _middleware(self, request, handler):
+        """Session auto load middleware, connecting from configuration."""
+        await self.load(request)
+        return await handler(request)
+
+    _middleware.__middleware_version__ = 1
 
     def user_loader(self, func):
         """Register a function as user loader."""
         self._user_loader = to_coroutine(func)  # noqa
         return self._user_loader
 
-    @asyncio.coroutine
-    def load(self, request):
+    async def load(self, request):
         """Load session from cookies."""
         if SESSION_KEY not in request:
             session = Session(self.cfg.secret, key=self.cfg.session_cookie,
@@ -89,27 +78,25 @@ class Plugin(BasePlugin):
 
     __call__ = load
 
-    def save(self, request, response):
+    async def save(self, request, response):
         """Save session to response cookies."""
-        if isinstance(response, Response) and SESSION_KEY in request and not response.started:
+        if isinstance(response, Response) and SESSION_KEY in request and not response.prepared:
             session = request[SESSION_KEY]
             if session.save(response.set_cookie):
                 self.app.logger.debug('Session saved: %s', session)
 
-    @asyncio.coroutine
-    def load_user(self, request):
+    async def load_user(self, request):
         """Load user from request."""
         if USER_KEY not in request:
-            session = yield from self.load(request)
+            session = await self.load(request)
             if 'id' not in session:
                 return None
 
-            request[USER_KEY] = request.user = yield from self._user_loader(session['id'])
+            request[USER_KEY] = request.user = await self._user_loader(session['id'])
 
         return request[USER_KEY]
 
-    @asyncio.coroutine
-    def check_user(self, request, func=None, location=None, **kwargs):
+    async def check_user(self, request, func=None, location=None, **kwargs):
         """Check for user is logged and pass the given func.
 
         :param func: user checker function, defaults to default_user_checker
@@ -117,14 +104,14 @@ class Plugin(BasePlugin):
             May be either string (URL) or function which accepts request as argument
             and returns string URL.
         """
-        user = yield from self.load_user(request)
+        user = await self.load_user(request)
         func = func or self.cfg.default_user_checker
         if not func(user):
             location = location or self.cfg.login_url
             while callable(location):
                 location = location(request)
                 while asyncio.iscoroutine(location):
-                    location = yield from location
+                    location = await location
             raise HTTPFound(location, **kwargs)
         return user
 
@@ -133,79 +120,24 @@ class Plugin(BasePlugin):
         def wrapper(view):
             view = to_coroutine(view)
 
-            @asyncio.coroutine
             @functools.wraps(view)
-            def handler(request, *args, **kwargs):
-                yield from self.check_user(request, func, location, **rkwargs)
-                return (yield from view(request, *args, **kwargs))
+            async def handler(request, *args, **kwargs):
+                await self.check_user(request, func, location, **rkwargs)
+                return await view(request, *args, **kwargs)
             return handler
 
         return wrapper
 
-    @asyncio.coroutine
-    def login(self, request, id_):
+    async def login(self, request, id_):
         """Login an user by ID."""
-        session = yield from self.load(request)
+        session = await self.load(request)
         session['id'] = id_
 
-    @asyncio.coroutine
-    def logout(self, request):
+    async def logout(self, request):
         """Logout an user."""
-        session = yield from self.load(request)
+        session = await self.load(request)
         if 'id' in session:
             del session['id']
-
-    @asyncio.coroutine
-    def flash(self, request, message, category='message'):
-        """Add a message to be flashes on next request."""
-        session = yield from self.load(request)
-        flashes = session.get(FLASHES_KEY, [])
-        if isinstance(flashes, str):
-            flashes = json.loads(flashes)
-        flashes.append((category, message))
-        session[FLASHES_KEY] = flashes
-
-    @staticmethod
-    def get_flashed_messages(session, with_categories=False, category_filter=None):
-        """Retrieve flashed messages.
-
-        Important: this is not a coroutine, and as such it requires you to
-        call `app.ps.session.load` beforehand!
-
-        For example, if you call `load_user` then it is okay.
-
-        Or you can use async version of this method.
-
-        First argument can be either already-loaded Session
-        or a request object (if session was loaded before).
-        """
-        if not isinstance(session, Session):
-            # this is probably a request; try to get session from it
-            request = session
-            if SESSION_KEY not in request:
-                raise ValueError('Please call `await app.ps.session.load(request)` beforehand!')
-            session = request[SESSION_KEY]
-
-        flashes = session.pop(FLASHES_KEY, [])
-        if isinstance(flashes, str):
-            flashes = json.loads(flashes)
-
-        if category_filter:
-            flashes = list(filter(lambda f: f[0] in category_filter, flashes))
-
-        if not with_categories:
-            return [f[1] for f in flashes]
-
-        return flashes
-
-    @asyncio.coroutine
-    def get_flashed_messages_async(self, request, with_categories=False, category_filter=None):
-        """Retrieve flashed messages.
-
-        This is a coroutine, and it will load session if needed.
-        """
-        session = yield from self.load(request)
-        return self.get_flashed_messages(session, with_categories, category_filter)
 
 
 class Session(dict):
