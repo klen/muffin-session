@@ -6,7 +6,6 @@ import asyncio
 import base64
 import functools
 import time
-from aiohttp.web import middleware
 
 import ujson as json
 from muffin import HTTPFound, Response
@@ -44,7 +43,7 @@ class Plugin(BasePlugin):
         super().setup(app)
 
         if self.cfg.secret == 'InsecureSecret':
-            app.logger.warn(
+            app.logger.warning(
                 'Use insecure secret key. Change SESSION_SECRET option in configuration.')
 
         self._user_loader = asyncio.coroutine(lambda id_: id_)  # noqa
