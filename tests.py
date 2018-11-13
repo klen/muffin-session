@@ -105,3 +105,14 @@ async def test_muffin_session(app, client):
     async with client.get('/logout', allow_redirects=False) as resp:
         assert resp.status == 302
         assert resp.headers['location'] == '/'
+
+
+def test_session():
+    from muffin_session import Session
+
+    session = Session('secret')
+    session.load({session.key: 'invalid'})
+    assert not session.store
+
+    session.load({session.key: session.encrypt('{"test":true}')})
+    assert session.store == {'test': True}

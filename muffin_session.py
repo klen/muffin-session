@@ -198,7 +198,9 @@ class Session(dict):
 
     def decrypt(self, value):
         """Decrypt session data."""
-        value, timestamp, signature = value.split("|")
+        try:
+            value, timestamp, signature = value.split("|")
+        except ValueError:
+            return None
         if check_signature(signature, self.secret, value + timestamp, encoding=self.encoding):
             return base64.b64decode(value).decode(self.encoding)
-        return 'null'
