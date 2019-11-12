@@ -12,7 +12,7 @@ from muffin.plugins import BasePlugin
 from muffin.utils import create_signature, check_signature, to_coroutine, json, dumps
 
 
-__version__ = "0.6.2"
+__version__ = "0.6.3"
 __project__ = "muffin-session"
 __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
