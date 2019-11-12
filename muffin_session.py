@@ -7,10 +7,9 @@ import base64
 import functools
 import time
 
-import ujson as json
 from muffin import HTTPFound, Response
 from muffin.plugins import BasePlugin
-from muffin.utils import create_signature, check_signature, to_coroutine
+from muffin.utils import create_signature, check_signature, to_coroutine, json, dumps
 
 
 __version__ = "0.6.2"
@@ -157,7 +156,7 @@ class Session(dict):
         """Update cookies if the session has been changed."""
         if set(self.store.items()) ^ set(self.items()):
             value = dict(self.items())
-            value = json.dumps(value)
+            value = dumps(value)
             value = self.encrypt(value)
             if not isinstance(value, str):
                 value = value.encode(self.encoding)
@@ -168,7 +167,7 @@ class Session(dict):
     def __setitem__(self, name, value):
         """Dump value to JSON."""
         if isinstance(value, (dict, list, tuple, set)):
-            value = json.dumps(value)
+            value = dumps(value)
         super().__setitem__(name, value)
 
     def load(self, cookies, **kwargs):
