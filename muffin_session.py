@@ -7,10 +7,8 @@ from inspect import iscoroutine
 
 from asgi_sessions import Session
 from asgi_tools import ResponseRedirect, Response, Request
-#  from muffin import HTTPFound, Response
 from muffin.plugin import BasePlugin
 from muffin.utils import to_awaitable
-#  from muffin.utils import create_signature, check_signature, to_coroutine, json, dumps
 
 
 __version__ = "0.7.3"
