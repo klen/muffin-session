@@ -3,19 +3,17 @@ Muffin-Session
 
 .. _description:
 
-Muffin-Session -- Implement an user sessions in Muffin Framework.
+**Muffin-Session** -- Signed Cookie-Based HTTP sessions for Muffin_ framework
 
 .. _badges:
 
-.. image:: http://img.shields.io/travis/klen/muffin-session.svg?style=flat-square
-    :target: http://travis-ci.org/klen/muffin-session
-    :alt: Build Status
+.. image:: https://github.com/klen/muffin-session/workflows/tests/badge.svg
+    :target: https://github.com/klen/muffin-session/actions
+    :alt: Tests Status
 
-.. image:: http://img.shields.io/pypi/v/muffin-session.svg?style=flat-square
-    :target: https://pypi.python.org/pypi/muffin-session
-
-.. image:: http://img.shields.io/pypi/dm/muffin-session.svg?style=flat-square
-    :target: https://pypi.python.org/pypi/muffin-session
+.. image:: https://img.shields.io/pypi/v/muffin-session
+    :target: https://pypi.org/project/muffin-session/
+    :alt: PYPI Version
 
 .. _contents:
 
@@ -26,7 +24,7 @@ Muffin-Session -- Implement an user sessions in Muffin Framework.
 Requirements
 =============
 
-- python >= 3.3
+- python >= 3.8
 
 .. _installation:
 
@@ -42,83 +40,148 @@ Installation
 Usage
 =====
 
-* Add **muffin_session** to **PLUGINS** in your Application configuration.
-* Setup options if needed (see bellow).
+1. Use it manually
+
+.. code-block:: python
+
+    from muffin import Application, ResponseHTML
+    from muffin_session import Plugin as Session
+
+    # Create Muffin Application
+    app = Application('example')
+
+    # Initialize the plugin
+    # As alternative: session = Session(app, **options)
+    session = Session()
+    session.init(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS')
+
+    # Use it inside your handlers
+    @app.route('/update')
+    async def update_session(request):
+        ses = session.load_from_request(request)
+        ses['var'] = 'value'
+        response = ResponseHTML('Session has been updated')
+        session.save_to_response(ses, response)
+        return res
+
+    @app.route('/load')
+    async def load_session(request):
+        ses = session.load_from_request(request)
+        return ses.get('var')
+
+1. Auto manage sessions (with middleware)
+
+.. code-block:: python
+
+    from muffin import Application, ResponseHTML
+    from muffin_session import Plugin as Session
+
+    # Create Muffin Application
+    app = Application('example')
+
+    # Initialize the plugin
+    # As alternative: session = Session(app, **options)
+    session = Session()
+    session.init(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
+
+    # Use it inside your handlers
+    @app.route('/update')
+    async def update_session(request):
+        request.session['var'] = 'value'
+        return 'Session has been updated'
+
+    @app.route('/load')
+    async def load_session(request):
+        return request.session.get('var')
+
 
 Options
 -------
 
-`SESSION_AUTO_LOAD` -- Load session every request automatically
-Session will be loaded into `request.session`.
+Format: Name -- Description (`default value`)
 
-`SESSION_DEFAULT_USER_CHECKER` -- A function which checks logged user (lambda x: x)
+**secret_key** -- A secret code to sign sessions (`InsecureSecret`)
 
-`SESSION_LOGIN_URL` -- Redirect URL ('/login'), or it may be a function
-which accepts `request` object and returns a string.
+**auto_manage** -- Load/Save sessions automatically (`False`). Session will be loaded into `request.session`
 
-`SESSION_SECRET` -- A secret code ('Insecuresecret')
+**cookie_name** -- Sessions's cookie name (`session`)
 
-`SESSION_MAX_AGE` -- # Defines the lifetime of the session-cookie, in seconds
+**cookie_params** -- Sessions's cookie params (`{'path': '/', 'max-age': None, 'samesite': 'lax', 'secure': False}`)
 
-`SESSION_DOMAIN` -- # Defines session-cookie domain
+**default_user_checker** -- A function to check a logged user (`lambda x: x`)
+
+**login_url** -- An URL to redirect anonymous users (it may be a function which accept `request` and returns a string) (`/login`)
+
+
+You are able to provide the options when you are initiliazing the plugin:
+
+.. code-block:: python
+
+    session.init(app, secret_key='123455', cookie_name='info')
+
+
+Or setup it inside `Muffin.Application` config using the `SESSION_` prefix:
+
+.. code-block:: python
+
+   SESSION_SECRET_KEY = '123455'
+
+   SESSION_COOKIE_NAME = 'info'
+
+`Muffin.Application` configuration options are case insensetive
+
 
 Examples
 --------
 
-::
+.. code-block:: python
+    from muffin import Application, ResponseHTML
+    from muffin_session import Plugin as Session
 
-    @app.ps.session.user_loader
-    def load_user(_id):
+    # Create Muffin Application
+    app = Application('example')
+
+    # Initialize the plugin
+    # As alternative: session = Session(app, **options)
+    session = Session()
+    session.init(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
+
+    @session.user_loader
+    async def load_user(ident):
         """Define your own user loader. """
+        return await my_database_load_user_by_id(ident)
 
     @app.register('/session')
-    def get_session(request):
+    async def get_session(request):
         """ Load session and return it as JSON. """
-        session = yield from app.ps.session(request)
-        return dict(session)
+        return dict(request.session)
 
     @app.register('/admin')
-    @app.ps.session.user_pass(lambda u: u.is_admin)
-    def admin(request):
-        """ Check for user is admin. """
-
+    @session.user_pass(lambda user: user.is_admin)
+    async def admin(request):
+        """Awailable for admins only. """
+        return 'TOP SECRET'
 
     @app.register('/login')
-    def login(request):
-        """ Login user. """
+    async def login(request):
+        """Save user id into the current session. """
         # ...
-        yield from app.ps.session.login(current_user.pk)
-
+        session.login(request, current_user.pk)
+        return 'OK'
 
     @app.register('/logout')
-    def logout(request):
+    async def logout(request):
         """ Logout user. """
         # ...
-        yield from app.ps.session.logout(curuser.pk)
+        session.logout(request)
+        return 'OK'
 
     @app.register('/somewhere')
-    def somewhere(request):
+    async def somewhere(request):
         """ Do something and leave a flash message """
         # ...
-        yield from app.ps.session.flash('Something done successfully')
-
-    @app.register('/common')
-    def common_page(request):
-        """
-        This can be included in any endpoint which outputs regular page.
-        If you use jinja2 or other templating engine,
-        you will need to pass `request` to its context somehow.
-        Also this plugin will register `get_flashed_messages` function in Jinja2 context,
-        but only if Jinja2 plugin was loaded before this one.
-        """
-        # first we want to ensure that session is loaded,
-        yield from app.ps.session.load()
-        # this method is *not* a coroutine, so it can be used in templates
-        messages = app.ps.session.get_flashed_messages()
-        return (
-            "<html><body><header>%s</header> Other content </body></html>" %
-            '<br/>'.join(messages)
-        )
+        request.session.clear()
+        return 'OK'
 
 
 .. _bugtracker:
@@ -150,17 +213,10 @@ License
 
 Licensed under a `MIT license`_.
 
-If you wish to express your appreciation for the project, you are welcome to send
-a postcard to: ::
-
-    Kirill Klenov
-    pos. Severny 8-3
-    MO, Istra, 143500
-    Russia
-
 .. _links:
 
 
 .. _klen: https://github.com/klen
+.. _Muffin: https://github.com/klen/muffin
 
 .. _MIT license: http://opensource.org/licenses/MIT

@@ -1,1 +1,2 @@
-muffin  >= 0.30
+muffin          >= 0.41.6
+asgi-sessions   >= 0.3.0

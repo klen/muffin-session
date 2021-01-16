@@ -1,118 +1,131 @@
-import pytest
-import asyncio
 import muffin
+import pytest
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(params=[
+    pytest.param('asyncio'),
+    pytest.param('trio'),
+], autouse=True)
+def anyio_backend(request):
+    return request.param
+
+
+@pytest.fixture
 def app():
-    app = muffin.Application('session', SESSION_LOGIN_URL='/', PLUGINS=['muffin_session'])
+    return muffin.Application('session', DEBUG=True, SESSION_LOGIN_URL='/home')
 
-    @app.register('/')
-    async def index(request):
-        return 'OK'
 
-    @app.register('/auth')
-    @app.ps.session.user_pass()
-    def auth(request):
+async def test_session_manual(app, client):
+    from muffin_session import Plugin as Session
+
+    session = Session(app, secret_key='123456')
+    assert session.cfg.login_url == '/home'
+
+    @app.route('/auth')
+    @session.user_pass()
+    async def auth(request):
         return request.user
 
-    def determine_redir(request):
+    res = await client.get('/auth', allow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['location'] == '/home'
+
+    @app.route('/auth_dyn')
+    @session.user_pass(location=lambda req: req.query.get('target'))
+    async def auth_dyn(request):
+        return request.user
+
+    res = await client.get('/auth_dyn', query={'target': '/another_page'}, allow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['location'] == '/another_page'
+
+    async def determine_redir_async(request):
         return request.query.get('target')
 
-    @app.register('/auth_dyn')
-    @app.ps.session.user_pass(location=determine_redir)
-    def auth_dyn(request):
+    @app.route('/auth_dyn_async')
+    @session.user_pass(location=determine_redir_async)
+    async def auth_dyn_async(request):
         return request.user
 
-    @asyncio.coroutine
-    def determine_redir_async(request):
-        return request.query.get('target')
+    res = await client.get(
+        '/auth_dyn_async', query={'target': '/another_page'}, allow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['location'] == '/another_page'
 
-    @app.register('/auth_dyn_async')
-    @app.ps.session.user_pass(location=determine_redir)
-    def auth_dyn_async(request):
-        return request.user
-
-    @app.register('/login')
+    @app.route('/login')
     async def login(request):
-        await app.ps.session.login(request, request.query.get('name'))
-        return muffin.HTTPFound('/auth')
+        session.login(request, request.query.get('name'))
+        res = muffin.ResponseRedirect('/auth', status_code=302)
+        session.save_to_response(request.session, res)
+        return res
 
-    @app.register('/logout')
-    async def logout(request):
-        await app.ps.session.logout(request)
-        return muffin.HTTPFound('/')
+    res = await client.get('/login', query={'name': 'mike'})
+    assert res.status_code == 200
+    assert 'mike' in res.text
 
-    @app.register('/session')
-    async def session(request):
-        session = await app.ps.session(request)
-        return dict(session)
+    @app.route('/session')
+    async def get_session(request):
+        ses = session.load_from_request(request)
+        return dict(ses)
 
-    @app.register('/error')
+    res = await client.get('/session')
+    assert res.status_code == 200
+    assert res.json() == {'id': 'mike'}
+
+    @app.route('/error')
     async def error(request):
-        session = await app.ps.session(request)
-        session = await app.ps.session(request)
-        session['name'] = 'value'
-        raise muffin.HTTPForbidden()
+        ses = session.load_from_request(request)
+        ses = session.load_from_request(request)
+        ses['name'] = 'value'
+        res = muffin.ResponseError(403)
+        session.save_to_response(ses, res)
+        return res
 
-    return app
+    res = await client.get('/error')
+    assert res.status_code == 403
 
+    res = await client.get('/session')
+    assert res.status_code == 200
+    assert 'name' in res.json()
 
-async def test_muffin_session(app, client):
-    assert app.ps.session
+    @app.route('/logout')
+    async def logout(request):
+        session.logout(request)
+        res = muffin.ResponseRedirect('/', status_code=302)
+        session.save_to_response(request.session, res)
+        return res
 
-    async with client.get('/auth', allow_redirects=False) as resp:
-        assert resp.status == 302
-        assert resp.headers['location'] == '/'
+    await client.get('/logout')
+    res = await client.get('/session')
+    assert 'id' not in res.json()
 
-    async with client.get(
-            '/auth_dyn', params={'target': '/another_page'}, allow_redirects=False) as resp:
-        assert resp.status == 302
-        assert resp.headers['location'] == '/another_page'
+    res = await client.get('/auth', allow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['location'] == '/home'
 
-    async with client.get(
-            '/auth_dyn_async', params={'target': '/another_page'}, allow_redirects=False) as resp:
-        assert resp.status == 302
-        assert resp.headers['location'] == '/another_page'
-
-    async with client.get('/login', params={'name': 'mike'}) as resp:
-        assert resp.status == 200
-        text = await resp.text()
-        assert 'mike' in text
-
-    async with client.get('/session') as resp:
-        assert resp.status == 200
-        json = await resp.json()
-        assert json == {'id': 'mike'}
-
-    async with client.get('/error') as resp:
-        assert resp.status == 403
-
-    async with client.get('/session') as resp:
-        assert resp.status == 200
-        json = await resp.json()
-        assert 'name' in json
-
-    async with client.get('/logout'):
-        async with client.get('/session') as resp:
-            json = await resp.json()
-            assert 'id' not in json
-
-    async with client.get('/auth', allow_redirects=False) as resp:
-        assert resp.status == 302
-        assert resp.headers['location'] == '/'
-
-    async with client.get('/logout', allow_redirects=False) as resp:
-        assert resp.status == 302
-        assert resp.headers['location'] == '/'
+    res = await client.get('/logout', allow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['location'] == '/'
 
 
-def test_session():
-    from muffin_session import Session
+async def test_session_middleware(app, client):
+    from muffin_session import Plugin as Session
 
-    session = Session('secret')
-    session.load({session.key: 'invalid'})
-    assert not session.store
+    Session(app, auto_manage=True, secret_key='123456')
 
-    session.load({session.key: session.encrypt('{"test":true}')})
-    assert session.store == {'test': True}
+    @app.route('/session')
+    async def auth(request):
+        return dict(request.session)
+
+    res = await client.get('/session')
+    assert res.status_code == 200
+    assert res.json() == {}
+
+    @app.route('/login')
+    async def login(request):
+        request.session['user'] = 'mike'
+        return muffin.ResponseRedirect('/session')
+
+    res = await client.get('/login')
+    assert res.status_code == 200
+    assert res.json() == {'user': 'mike'}

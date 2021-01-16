@@ -62,8 +62,8 @@ upload: clean
 #  Development
 # =============
 
-$(VIRTUAL_ENV): requirements.txt
-	@[ -d $(VIRTUAL_ENV) ] || virtualenv --no-site-packages --python=python3 $(VIRTUAL_ENV)
+$(VIRTUAL_ENV): requirements.txt setup.cfg
+	@[ -d $(VIRTUAL_ENV) ] || python -m venv $(VIRTUAL_ENV)
 	@$(VIRTUAL_ENV)/bin/pip install -r requirements.txt
 	@touch $(VIRTUAL_ENV)
 
@@ -73,8 +73,5 @@ $(VIRTUAL_ENV)/bin/py.test: $(VIRTUAL_ENV) requirements-tests.txt
 
 .PHONY: test
 # target: test - Runs tests
-test: $(VIRTUAL_ENV)/bin/py.test
-	@$(VIRTUAL_ENV)/bin/py.test -xs tests.py
-
-.PHONY: t
-t: test
+t test: $(VIRTUAL_ENV)/bin/py.test
+	@$(VIRTUAL_ENV)/bin/py.test tests.py
