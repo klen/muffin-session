@@ -13,7 +13,7 @@ from muffin.utils import to_awaitable
 #  from muffin.utils import create_signature, check_signature, to_coroutine, json, dumps
 
 
-__version__ = "0.7.1"
+__version__ = "0.7.2"
 __project__ = "muffin-session"
 __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
