@@ -135,6 +135,7 @@ Examples
 --------
 
 .. code-block:: python
+
     from muffin import Application, ResponseHTML
     from muffin_session import Plugin as Session
 
