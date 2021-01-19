@@ -98,19 +98,19 @@ Usage
 Options
 -------
 
-Format: Name -- Description (`default value`)
+Format: ``Name`` -- Description (``default value``)
 
-**secret_key** -- A secret code to sign sessions (`InsecureSecret`)
+``secret_key`` -- A secret code to sign sessions (``InsecureSecret``)
 
-**auto_manage** -- Load/Save sessions automatically (`False`). Session will be loaded into `request.session`
+``auto_manage`` -- Load/Save sessions automatically (``False``). Session will be loaded into ``request.session``
 
-**cookie_name** -- Sessions's cookie name (`session`)
+``cookie_name`` -- Sessions's cookie name (``session``)
 
-**cookie_params** -- Sessions's cookie params (`{'path': '/', 'max-age': None, 'samesite': 'lax', 'secure': False}`)
+``cookie_params`` -- Sessions's cookie params (``{'path': '/', 'max-age': None, 'samesite': 'lax', 'secure': False}``)
 
-**default_user_checker** -- A function to check a logged user (`lambda x: x`)
+``default_user_checker`` -- A function to check a logged user (``lambda x: x``)
 
-**login_url** -- An URL to redirect anonymous users (it may be a function which accept `request` and returns a string) (`/login`)
+``login_url`` -- An URL to redirect anonymous users (it may be a function which accept ``Request`` and returns a string) (``/login``)
 
 
 You are able to provide the options when you are initiliazing the plugin:
@@ -120,7 +120,7 @@ You are able to provide the options when you are initiliazing the plugin:
     session.init(app, secret_key='123455', cookie_name='info')
 
 
-Or setup it inside `Muffin.Application` config using the `SESSION_` prefix:
+Or setup it inside ``Muffin.Application`` config using the ``SESSION_`` prefix:
 
 .. code-block:: python
 
@@ -128,7 +128,7 @@ Or setup it inside `Muffin.Application` config using the `SESSION_` prefix:
 
    SESSION_COOKIE_NAME = 'info'
 
-`Muffin.Application` configuration options are case insensetive
+``Muffin.Application`` configuration options are case insensetive
 
 
 Examples
@@ -210,7 +210,7 @@ Contributors
 .. _license:
 
 License
-=======
+========
 
 Licensed under a `MIT license`_.
 
