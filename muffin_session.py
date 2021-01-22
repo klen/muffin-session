@@ -11,7 +11,7 @@ from muffin.plugin import BasePlugin
 from muffin.utils import to_awaitable
 
 
-__version__ = "0.7.5"
+__version__ = "0.8.0"
 __project__ = "muffin-session"
 __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
