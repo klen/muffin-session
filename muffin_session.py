@@ -41,9 +41,9 @@ class Plugin(BasePlugin):
         'login_url': '/login',
     }
 
-    def init(self, app, **options) -> None:
+    def setup(self, app, **options) -> None:
         """Initialize the plugin."""
-        super().init(app, **options)
+        super().setup(app, **options)
 
         if self.cfg.secret_key == 'InsecureSecret':
             app.logger.warning(
