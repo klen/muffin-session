@@ -53,7 +53,7 @@ Usage
     # Initialize the plugin
     # As alternative: session = Session(app, **options)
     session = Session()
-    session.init(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS')
+    session.setup(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS')
 
     # Use it inside your handlers
     @app.route('/update')
@@ -82,7 +82,7 @@ Usage
     # Initialize the plugin
     # As alternative: session = Session(app, **options)
     session = Session()
-    session.init(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
+    session.setup(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
 
     # Use it inside your handlers
     @app.route('/update')
@@ -117,7 +117,7 @@ You are able to provide the options when you are initiliazing the plugin:
 
 .. code-block:: python
 
-    session.init(app, secret_key='123455', cookie_name='info')
+    session.setup(app, secret_key='123455', cookie_name='info')
 
 
 Or setup it inside ``Muffin.Application`` config using the ``SESSION_`` prefix:
@@ -145,7 +145,7 @@ Examples
     # Initialize the plugin
     # As alternative: session = Session(app, **options)
     session = Session()
-    session.init(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
+    session.setup(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
 
     @session.user_loader
     async def load_user(ident):
