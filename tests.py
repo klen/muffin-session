@@ -27,7 +27,7 @@ async def test_session_manual(app, client):
         return request.user
 
     res = await client.get('/auth', allow_redirects=False)
-    assert res.status_code == 302
+    assert res.status_code == 307
     assert res.headers['location'] == '/home'
 
     @app.route('/auth_dyn')
@@ -36,7 +36,7 @@ async def test_session_manual(app, client):
         return request.user
 
     res = await client.get('/auth_dyn', query={'target': '/another_page'}, allow_redirects=False)
-    assert res.status_code == 302
+    assert res.status_code == 307
     assert res.headers['location'] == '/another_page'
 
     async def determine_redir_async(request):
@@ -49,7 +49,7 @@ async def test_session_manual(app, client):
 
     res = await client.get(
         '/auth_dyn_async', query={'target': '/another_page'}, allow_redirects=False)
-    assert res.status_code == 302
+    assert res.status_code == 307
     assert res.headers['location'] == '/another_page'
 
     @app.route('/login')
@@ -61,7 +61,8 @@ async def test_session_manual(app, client):
 
     res = await client.get('/login', query={'name': 'mike'})
     assert res.status_code == 200
-    assert 'mike' in res.text
+    text = await res.text()
+    assert 'mike' in text
 
     @app.route('/session')
     async def get_session(request):
@@ -70,7 +71,7 @@ async def test_session_manual(app, client):
 
     res = await client.get('/session')
     assert res.status_code == 200
-    assert res.json() == {'id': 'mike'}
+    assert await res.json() == {'id': 'mike'}
 
     @app.route('/error')
     async def error(request):
@@ -86,7 +87,8 @@ async def test_session_manual(app, client):
 
     res = await client.get('/session')
     assert res.status_code == 200
-    assert 'name' in res.json()
+    json = await res.json()
+    assert 'name' in json
 
     @app.route('/logout')
     async def logout(request):
@@ -97,10 +99,11 @@ async def test_session_manual(app, client):
 
     await client.get('/logout')
     res = await client.get('/session')
-    assert 'id' not in res.json()
+    json = await res.json()
+    assert 'id' not in json
 
     res = await client.get('/auth', allow_redirects=False)
-    assert res.status_code == 302
+    assert res.status_code == 307
     assert res.headers['location'] == '/home'
 
     res = await client.get('/logout', allow_redirects=False)
@@ -119,7 +122,7 @@ async def test_session_middleware(app, client):
 
     res = await client.get('/session')
     assert res.status_code == 200
-    assert res.json() == {}
+    assert await res.json() == {}
 
     @app.route('/login')
     async def login(request):
@@ -128,4 +131,4 @@ async def test_session_middleware(app, client):
 
     res = await client.get('/login')
     assert res.status_code == 200
-    assert res.json() == {'user': 'mike'}
+    assert await res.json() == {'user': 'mike'}
