@@ -1,12 +1,14 @@
 """Support session with Muffin framework."""
 
-# Package information
-# ===================
 import functools
+import typing as t
 from inspect import iscoroutine
 
 from asgi_sessions import Session
-from asgi_tools import ResponseRedirect, Response, Request
+from asgi_tools.middleware import ASGIApp
+from asgi_tools._types import Receive, Send
+import muffin
+from muffin import ResponseRedirect, Response, Request
 from muffin.plugin import BasePlugin
 from muffin.utils import to_awaitable
 
@@ -41,7 +43,7 @@ class Plugin(BasePlugin):
         'login_url': '/login',
     }
 
-    def setup(self, app, **options) -> None:
+    def setup(self, app: muffin.Application, **options):
         """Initialize the plugin."""
         super().setup(app, **options)
 
@@ -56,7 +58,8 @@ class Plugin(BasePlugin):
         if self.cfg.auto_manage:
             app.middleware(self.__middleware)
 
-    async def __middleware(self, handler, request, receive, send):
+    async def __middleware(
+            self, handler: ASGIApp, request: Request, receive: Receive, send: Send):
         """Session auto load middleware, connecting from configuration."""
         session = self.load_from_request(request)
         response = await handler(request, receive, send)
@@ -107,7 +110,9 @@ class Plugin(BasePlugin):
 
         return wrapper
 
-    async def check_user(self, request, func=None, location=None, status_code=302, **kwargs):
+    async def check_user(
+            self, request: Request, func: t.Callable = None,
+            location: t.Union[str, t.Callable] = None, **response_params) -> t.Any:
         """Check for user is logged and pass the given func.
 
         :param func: user checker function, defaults to default_user_checker
@@ -118,20 +123,20 @@ class Plugin(BasePlugin):
         user = await self.load_user(request)
         func = func or self.cfg.default_user_checker
         if not func(user):
-            location = location or self.cfg.login_url
-            while callable(location):
-                location = location(request)
-                while iscoroutine(location):
-                    location = await location
-            raise ResponseRedirect(location, status_code=status_code, **kwargs)
+            redirect_url = location or self.cfg.login_url
+            while callable(redirect_url):
+                redirect_url = redirect_url(request)
+                while iscoroutine(redirect_url):
+                    redirect_url = await redirect_url
+            raise ResponseRedirect(redirect_url, **response_params)
         return user
 
-    def login(self, request, ident):
+    def login(self, request: Request, ident: str):
         """Store user ID in the session."""
         session = self.load_from_request(request)
         session['id'] = ident
 
-    def logout(self, request):
+    def logout(self, request: Request):
         """Logout an user."""
         session = self.load_from_request(request)
         if 'id' in session:

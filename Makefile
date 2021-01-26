@@ -71,3 +71,8 @@ $(VIRTUAL_ENV): setup.cfg
 # target: test - Runs tests
 t test: $(VIRTUAL_ENV)
 	@$(VIRTUAL_ENV)/bin/pytest tests.py
+
+.PHONY: mypy
+# target: mypy - Code checking
+mypy: $(VIRTUAL_ENV)
+	@$(VIRTUAL_ENV)/bin/mypy muffin_session
