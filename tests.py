@@ -78,7 +78,7 @@ async def test_session_manual(app, client):
         ses = session.load_from_request(request)
         ses = session.load_from_request(request)
         ses['name'] = 'value'
-        res = muffin.ResponseError(403)
+        res = muffin.ResponseError(status_code=403)
         session.save_to_response(ses, res)
         return res
 

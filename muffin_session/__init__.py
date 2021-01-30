@@ -1,5 +1,6 @@
 """Support session with Muffin framework."""
 
+import sys
 import functools
 import typing as t
 from inspect import iscoroutine
@@ -28,7 +29,7 @@ class Plugin(BasePlugin):
     """Provide session's engine for Muffin."""
 
     name = 'session'
-    defaults = {
+    defaults: t.Dict = {
         'auto_manage': False,
         'secret_key': 'InsecureSecret',  # Secret is using for secure the session
         'cookie_name': 'session',
@@ -42,6 +43,10 @@ class Plugin(BasePlugin):
         'default_user_checker': lambda x: x,
         'login_url': '/login',
     }
+
+    # XXX: Python 3.7
+    if sys.version_info < (3, 8):
+        del defaults['cookie_params']['samesite']
 
     def setup(self, app: muffin.Application, **options):
         """Initialize the plugin."""
