@@ -26,21 +26,21 @@ async def test_session_manual(app, client):
     async def auth(request):
         return request.user
 
-    res = await client.get('/auth', allow_redirects=False)
+    res = await client.get('/auth', follow_redirect=False)
     assert res.status_code == 307
     assert res.headers['location'] == '/home'
 
     @app.route('/auth_dyn')
-    @session.user_pass(location=lambda req: req.query.get('target'))
+    @session.user_pass(location=lambda req: req.url.query.get('target'))
     async def auth_dyn(request):
         return request.user
 
-    res = await client.get('/auth_dyn', query={'target': '/another_page'}, allow_redirects=False)
+    res = await client.get('/auth_dyn', query={'target': '/another_page'}, follow_redirect=False)
     assert res.status_code == 307
     assert res.headers['location'] == '/another_page'
 
     async def determine_redir_async(request):
-        return request.query.get('target')
+        return request.url.query.get('target')
 
     @app.route('/auth_dyn_async')
     @session.user_pass(location=determine_redir_async)
@@ -48,13 +48,13 @@ async def test_session_manual(app, client):
         return request.user
 
     res = await client.get(
-        '/auth_dyn_async', query={'target': '/another_page'}, allow_redirects=False)
+        '/auth_dyn_async', query={'target': '/another_page'}, follow_redirect=False)
     assert res.status_code == 307
     assert res.headers['location'] == '/another_page'
 
     @app.route('/login')
     async def login(request):
-        session.login(request, request.query.get('name'))
+        session.login(request, request.url.query.get('name'))
         res = muffin.ResponseRedirect('/auth', status_code=302)
         session.save_to_response(request.session, res)
         return res
@@ -102,11 +102,11 @@ async def test_session_manual(app, client):
     json = await res.json()
     assert 'id' not in json
 
-    res = await client.get('/auth', allow_redirects=False)
+    res = await client.get('/auth', follow_redirect=False)
     assert res.status_code == 307
     assert res.headers['location'] == '/home'
 
-    res = await client.get('/logout', allow_redirects=False)
+    res = await client.get('/logout', follow_redirect=False)
     assert res.status_code == 302
     assert res.headers['location'] == '/'
 
