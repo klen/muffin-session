@@ -98,19 +98,16 @@ Usage
 Options
 -------
 
-Format: ``Name`` -- Description (``default value``)
-
-``secret_key`` -- A secret code to sign sessions (``InsecureSecret``)
-
-``auto_manage`` -- Load/Save sessions automatically (``False``). Session will be loaded into ``request.session``
-
-``cookie_name`` -- Sessions's cookie name (``session``)
-
-``cookie_params`` -- Sessions's cookie params (``{'path': '/', 'max-age': None, 'samesite': 'lax', 'secure': False}``)
-
-``default_user_checker`` -- A function to check a logged user (``lambda x: x``)
-
-``login_url`` -- An URL to redirect anonymous users (it may be a function which accept ``Request`` and returns a string) (``/login``)
+=========================== =========================== =========================== 
+Name                        Default value               Desctiption
+--------------------------- --------------------------- ---------------------------
+**secret_key**              ``"InsecureSecret"``        A secret code to sign sessions
+**auto_manage**             ``False``                   Load/Save sessions automatically. Session will be loaded into ``request.session``
+**cookie_name**             ``"session"``               Sessions's cookie name (``session``)
+**cookie_params**                                       Sessions's cookie params (``{'path': '/', 'max-age': None, 'samesite': 'lax', 'secure': False}``)
+**default_user_checker**    ``lambda x: True``          A function to check a logged user
+**login_url**               ``"/login"``                An URL to redirect anonymous users (it may be a function which accept ``Request`` and returns a string)
+=========================== =========================== =========================== 
 
 
 You are able to provide the options when you are initiliazing the plugin:
