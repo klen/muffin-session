@@ -125,7 +125,7 @@ Or setup it inside ``Muffin.Application`` config using the ``SESSION_`` prefix:
 
    SESSION_COOKIE_NAME = 'info'
 
-``Muffin.Application`` configuration options are case insensetive
+``Muffin.Application`` configuration options are case insensitive
 
 
 Examples
