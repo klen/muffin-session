@@ -4,7 +4,7 @@ import pytest
 
 @pytest.fixture
 def app():
-    return muffin.Application('session', DEBUG=True, SESSION_LOGIN_URL='/home')
+    return muffin.Application(DEBUG=True, SESSION_LOGIN_URL='/home')
 
 
 async def test_session_manual(app, client):
