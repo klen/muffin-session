@@ -3,7 +3,7 @@
 import sys
 import functools
 import typing as t
-from inspect import iscoroutine
+from inspect import iscoroutine, isawaitable
 
 from asgi_sessions import Session
 from asgi_tools.middleware import ASGIApp
@@ -22,6 +22,8 @@ __license__ = "MIT"
 
 SESSION_KEY = 'session'
 USER_KEY = 'user'
+
+F = t.TypeVar('F')
 
 
 class Plugin(BasePlugin):
@@ -44,7 +46,7 @@ class Plugin(BasePlugin):
         'login_url': '/login',
     }
 
-    # XXX: Python 3.7
+    # XXX: Python 3.7 (py37)
     if sys.version_info < (3, 8):
         del defaults['cookie_params']['samesite']
 
@@ -86,9 +88,9 @@ class Plugin(BasePlugin):
         response.headers['Set-Cookie'] = session.cookie(
             self.cfg.cookie_name, self.cfg.cookie_params)
 
-    def user_loader(self, func):
+    def user_loader(self, func: F) -> F:
         """Register a function as user loader."""
-        self._user_loader = to_awaitable(func)  # noqa
+        self._user_loader = func  # noqa
         return func
 
     async def load_user(self, request):
@@ -98,7 +100,10 @@ class Plugin(BasePlugin):
             if 'id' not in session:
                 return
 
-            request[USER_KEY] = await self._user_loader(session['id'])
+            user = self._user_loader(session['id'])
+            if isawaitable(user):
+                user = await user
+            request[USER_KEY] = user
 
         return request[USER_KEY]
 
