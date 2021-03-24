@@ -1,17 +1,16 @@
 """Support session with Muffin framework."""
 
-import sys
 import functools
+import sys
 import typing as t
 from inspect import iscoroutine, isawaitable
 
-from asgi_sessions import Session
-from asgi_tools.middleware import ASGIApp
-from asgi_tools._types import Receive, Send
 import muffin
+from asgi_sessions import Session
+from asgi_tools._types import Receive, Send
+from asgi_tools.middleware import ASGIApp
 from muffin import ResponseRedirect, Response, Request
 from muffin.plugin import BasePlugin
-from muffin.utils import to_awaitable
 
 
 __version__ = "0.10.9"
@@ -59,7 +58,7 @@ class Plugin(BasePlugin):
                 'Use insecure secret key. '
                 'Change SESSION_SECRET_KEY option in your app configuration.')
 
-        self._user_loader = to_awaitable(lambda id_: id_)  # noqa
+        self._user_loader = lambda id_: id_  # noqa
 
         # Install middleware if auto managed
         if self.cfg.auto_manage:
