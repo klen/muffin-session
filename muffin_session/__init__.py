@@ -22,7 +22,7 @@ __license__ = "MIT"
 SESSION_KEY = 'session'
 USER_KEY = 'user'
 
-F = t.TypeVar('F')
+F = t.TypeVar('F', bound=t.Callable)
 
 
 class Plugin(BasePlugin):
