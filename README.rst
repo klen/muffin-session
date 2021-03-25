@@ -15,6 +15,10 @@ Muffin-Session
     :target: https://pypi.org/project/muffin-session/
     :alt: PYPI Version
 
+.. image:: https://img.shields.io/pypi/pyversions/muffin-session
+    :target: https://pypi.org/project/muffin-session/
+    :alt: Python Versions
+
 .. _contents:
 
 .. contents::
