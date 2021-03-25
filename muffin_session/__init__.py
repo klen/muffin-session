@@ -13,7 +13,7 @@ from muffin import ResponseRedirect, Response, Request
 from muffin.plugin import BasePlugin
 
 
-__version__ = "0.10.11"
+__version__ = "0.10.12"
 __project__ = "muffin-session"
 __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
