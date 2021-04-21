@@ -5,12 +5,10 @@ import sys
 import typing as t
 from inspect import iscoroutine, isawaitable
 
-import muffin
 from asgi_sessions import Session
-from asgi_tools._types import Receive, Send
-from asgi_tools.middleware import ASGIApp
-from muffin import ResponseRedirect, Response, Request
+from muffin import Application, ResponseRedirect, Response, Request
 from muffin.plugin import BasePlugin
+from muffin.typing import Receive, Send, ASGIApp
 
 
 __version__ = "0.10.12"
@@ -49,7 +47,7 @@ class Plugin(BasePlugin):
     if sys.version_info < (3, 8):
         del defaults['cookie_params']['samesite']
 
-    def setup(self, app: muffin.Application, **options):
+    def setup(self, app: Application, **options):
         """Initialize the plugin."""
         super().setup(app, **options)
 
