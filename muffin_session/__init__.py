@@ -7,7 +7,7 @@ from inspect import iscoroutine, isawaitable
 
 from asgi_sessions import Session
 from muffin import Application, ResponseRedirect, Response, Request
-from muffin.plugin import BasePlugin
+from muffin.plugins import BasePlugin
 from muffin.typing import Receive, Send, ASGIApp
 
 
