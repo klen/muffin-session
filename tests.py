@@ -128,3 +128,35 @@ async def test_session_middleware(app, client):
     res = await client.get('/login')
     assert res.status_code == 200
     assert await res.json() == {'user': 'mike'}
+
+
+def test_session_save(app, client):
+    from muffin_session import Plugin, Session
+
+    session = Plugin(app, secret_key='123456')
+    scope = client.build_scope('/', method='GET')
+    request = muffin.Request(scope)
+
+    response = session.save_to_response(request, {'test': 42}, id=1)
+    assert response
+    assert isinstance(response, muffin.ResponseJSON)
+    header = response.headers['Set-Cookie']
+    assert header
+
+    value = header.split(';')[0].split('=')[1]
+    ses = Session('123456', value)
+    assert ses['id'] == 1
+
+
+def test_session_login(app, client):
+    from muffin_session import Plugin, Session
+
+    session = Plugin(app, secret_key='123456')
+    scope = client.build_scope('/', method='GET')
+    request = muffin.Request(scope)
+    response = session.login(request, 42, response='OK')
+    header = response.headers['Set-Cookie']
+    assert header
+    value = header.split(';')[0].split('=')[1]
+    ses = Session('123456', value)
+    assert ses['id'] == 42

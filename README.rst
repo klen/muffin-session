@@ -73,7 +73,7 @@ Usage
         ses = session.load_from_request(request)
         return ses.get('var')
 
-1. Auto manage sessions (with middleware)
+2. Auto manage sessions (with middleware)
 
 .. code-block:: python
 

@@ -6,6 +6,7 @@ import typing as t
 from inspect import iscoroutine, isawaitable
 
 from asgi_sessions import Session
+from asgi_tools.response import parse_response
 from muffin import Application, ResponseRedirect, Response, Request
 from muffin.plugins import BasePlugin
 from muffin.typing import Receive, Send, ASGIApp
@@ -80,10 +81,17 @@ class Plugin(BasePlugin):
 
         return request[SESSION_KEY]
 
-    def save_to_response(self, session: Session, response: Response):
+    def save_to_response(
+            self, obj: t.Union[Session, Request], response: t.Any, **changes) -> Response:
         """Save session to response cookies."""
-        response.headers['Set-Cookie'] = session.cookie(
-            self.cfg.cookie_name, self.cfg.cookie_params)
+        if isinstance(obj, Request):
+            obj = self.load_from_request(obj)
+        for name, value in changes.items():
+            obj[name] = value
+        if not isinstance(response, Response):
+            response = parse_response(response)
+        response.headers['Set-Cookie'] = obj.cookie(self.cfg.cookie_name, self.cfg.cookie_params)
+        return response
 
     def user_loader(self, func: F) -> F:
         """Register a function as user loader."""
@@ -138,13 +146,17 @@ class Plugin(BasePlugin):
             raise ResponseRedirect(redirect_url, **response_params)
         return user
 
-    def login(self, request: Request, ident: str):
+    def login(self, request: Request, ident: str, *, response: t.Any = None):
         """Store user ID in the session."""
-        session = self.load_from_request(request)
-        session['id'] = ident
+        ses = self.load_from_request(request)
+        ses['id'] = ident
+        if response is not None:
+            return self.save_to_response(ses, response)
 
-    def logout(self, request: Request):
+    def logout(self, request: Request, *, response: t.Any = None):
         """Logout an user."""
-        session = self.load_from_request(request)
-        if 'id' in session:
-            del session['id']
+        ses = self.load_from_request(request)
+        if 'id' in ses:
+            del ses['id']
+        if response is not None:
+            return self.save_to_response(ses, response)
