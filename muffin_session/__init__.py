@@ -73,6 +73,11 @@ class Plugin(BasePlugin):
 
         return response
 
+    def user_loader(self, func: F) -> F:
+        """Register a function as user loader."""
+        self._user_loader = func  # noqa
+        return func
+
     def load_from_request(self, request: Request) -> Session:
         """Load a session from the request."""
         if SESSION_KEY not in request:
@@ -92,11 +97,6 @@ class Plugin(BasePlugin):
             response = parse_response(response)
         response.headers['Set-Cookie'] = obj.cookie(self.cfg.cookie_name, self.cfg.cookie_params)
         return response
-
-    def user_loader(self, func: F) -> F:
-        """Register a function as user loader."""
-        self._user_loader = func  # noqa
-        return func
 
     async def load_user(self, request):
         """Load user from request."""

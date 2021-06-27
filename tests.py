@@ -104,13 +104,17 @@ async def test_session_manual(app, client):
     assert res.headers['location'] == '/'
 
 
-@pytest.mark.parametrize('aiolib', ['trio'])
 async def test_session_middleware(app, client):
     from muffin_session import Plugin as Session
 
     session = Session(app, auto_manage=True, secret_key='123456')
     assert session.cfg.auto_manage
     assert session.cfg.secret_key == '123456'
+
+    @app.middleware
+    async def custom_md(handler, request, receive, send):
+        assert request.session is not None
+        return await handler(request, receive, send)
 
     @app.route('/session')
     async def auth(request):
