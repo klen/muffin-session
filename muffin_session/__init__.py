@@ -7,7 +7,7 @@ from inspect import iscoroutine, isawaitable
 
 from asgi_sessions import Session
 from asgi_tools.response import parse_response
-from muffin import Application, ResponseRedirect, Response, Request
+from muffin import Application, ResponseRedirect, Response, Request, ResponseError
 from muffin.plugins import BasePlugin
 from muffin.typing import Receive, Send, ASGIApp
 
@@ -112,13 +112,15 @@ class Plugin(BasePlugin):
 
         return request[USER_KEY]
 
-    def user_pass(self, func=None, location=None, **rkwargs):
+    def user_pass(self, checker: t.Callable = None,
+                  location: t.Union[str, t.Callable[[Request], str], ResponseError] = None,
+                  **rkwargs):
         """Check that a user is logged and pass conditions."""
         def wrapper(view):
 
             @functools.wraps(view)
             async def handler(request, *args, **kwargs):
-                await self.check_user(request, func, location, **rkwargs)
+                await self.check_user(request, checker, location, **rkwargs)
                 return await view(request, *args, **kwargs)
 
             return handler
@@ -126,24 +128,28 @@ class Plugin(BasePlugin):
         return wrapper
 
     async def check_user(
-            self, request: Request, func: t.Callable = None,
+            self, request: Request, checker: t.Callable = None,
             location: t.Union[str, t.Callable] = None, **response_params) -> t.Any:
-        """Check for user is logged and pass the given func.
+        """Check for user is logged and pass the given checker.
 
-        :param func: user checker function, defaults to default_user_checker
+        :param checker: user checker function, defaults to default_user_checker
         :param location: where to redirect if user is not logged in.
             May be either string (URL) or function which accepts request as argument
             and returns string URL.
         """
         user = await self.load_user(request)
-        func = func or self.cfg.default_user_checker
-        if not func(user):
-            redirect_url = location or self.cfg.login_url
-            while callable(redirect_url):
-                redirect_url = redirect_url(request)
-                while iscoroutine(redirect_url):
-                    redirect_url = await redirect_url
-            raise ResponseRedirect(redirect_url, **response_params)
+        checker = checker or self.cfg.default_user_checker
+        if not checker(user):
+            redirect = location or self.cfg.login_url
+            if isinstance(redirect, ResponseError):
+                raise redirect
+
+            if callable(redirect):
+                redirect = redirect(request)
+                if iscoroutine(redirect):
+                    redirect = await redirect
+            raise ResponseRedirect(redirect, **response_params)
+
         return user
 
     def login(self, request: Request, ident: str, *, response: t.Any = None):

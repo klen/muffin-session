@@ -156,11 +156,49 @@ def test_session_login(app, client):
     from muffin_session import Plugin, Session
 
     session = Plugin(app, secret_key='123456')
+
     scope = client.build_scope('/', method='GET')
     request = muffin.Request(scope)
+
     response = session.login(request, 42, response='OK')
     header = response.headers['Set-Cookie']
     assert header
+
     value = header.split(';')[0].split('=')[1]
     ses = Session('123456', value)
     assert ses['id'] == 42
+
+
+async def test_user_pass(app, client):
+    from muffin_session import Plugin as Session
+
+    session = Session(app, secret_key='123456')
+
+    @app.route('/login')
+    async def login(request):
+        session.login(request, request.url.query.get('name'))
+        return session.save_to_response(request.session, res)
+
+    @app.route('/')
+    async def anonimous(request):
+        return 'ANON'
+
+    @app.route('/user-required-redirect')
+    @session.user_pass()
+    async def user_required(request):
+        return 'user-required-redirect'
+
+    @app.route('/user-required-404')
+    @session.user_pass(location=muffin.ResponseError.NOT_FOUND())
+    async def user_required_404(request):
+        return 'user-required-404'
+
+    res = await client.get('/', follow_redirect=False)
+    assert res.status_code == 200
+    assert await res.text() == 'ANON'
+
+    res = await client.get('/user-required-redirect', follow_redirect=False)
+    assert res.status_code == 307
+
+    res = await client.get('/user-required-404', follow_redirect=False)
+    assert res.status_code == 404
