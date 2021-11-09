@@ -22,6 +22,7 @@ setup(
     install_requires=parse_requirements('requirements/requirements.txt'),
     extras_require=dict(
         tests=parse_requirements('requirements/requirements-tests.txt'),
+        fernet=['cryptography'],
     )
 )
 

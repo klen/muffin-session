@@ -3,7 +3,7 @@ Muffin-Session
 
 .. _description:
 
-**Muffin-Session** -- Signed Cookie-Based HTTP sessions for Muffin_ framework
+**Muffin-Session** -- Cookie-Based HTTP sessions for Muffin_ framework
 
 .. _badges:
 
@@ -22,6 +22,13 @@ Muffin-Session
 .. _contents:
 
 .. contents::
+
+Features
+========
+
+* Supports base64 sessions
+* Supports ``JWT`` signed sessions
+* Supports ``Fernet`` encrypted sessions
 
 .. _requirements:
 
@@ -103,8 +110,9 @@ Options
 -------
 
 =========================== =========================== =========================== 
-Name                        Default value               Desctiption
+Name                        Default value               Description
 --------------------------- --------------------------- ---------------------------
+**session_type**            ``"jwt"``                   Session type (``base64|jwt|fernet``)
 **secret_key**              ``"InsecureSecret"``        A secret code to sign sessions
 **auto_manage**             ``False``                   Load/Save sessions automatically. Session will be loaded into ``request.session``
 **cookie_name**             ``"session"``               Sessions's cookie name (``session``)

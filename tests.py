@@ -2,16 +2,20 @@ import muffin
 import pytest
 
 
+SECRET = 'SECRET78901234567890123456789012'
+
+
 @pytest.fixture
 def app():
     return muffin.Application(DEBUG=True, SESSION_LOGIN_URL='/home')
 
 
-async def test_session_manual(app, client):
+@pytest.mark.parametrize('ses_type', ['base64', 'jwt', 'fernet'])
+async def test_session_manual(app, client, ses_type):
     from muffin_session import Plugin as Session
 
-    session = Session(app, secret_key='123456')
-    assert session.cfg.secret_key == '123456'
+    session = Session(app, secret_key=SECRET, session_type=ses_type)
+    assert session.cfg.secret_key == SECRET
     assert session.cfg.login_url == '/home'
 
     @app.route('/auth')
@@ -104,12 +108,13 @@ async def test_session_manual(app, client):
     assert res.headers['location'] == '/'
 
 
-async def test_session_middleware(app, client):
+@pytest.mark.parametrize('ses_type', ['base64', 'jwt', 'fernet'])
+async def test_session_middleware(app, client, ses_type):
     from muffin_session import Plugin as Session
 
-    session = Session(app, auto_manage=True, secret_key='123456')
+    session = Session(app, auto_manage=True, secret_key=SECRET, session_type=ses_type)
     assert session.cfg.auto_manage
-    assert session.cfg.secret_key == '123456'
+    assert session.cfg.secret_key == SECRET
 
     @app.middleware
     async def custom_md(handler, request, receive, send):
@@ -134,10 +139,11 @@ async def test_session_middleware(app, client):
     assert await res.json() == {'user': 'mike'}
 
 
-def test_session_save(app, client):
-    from muffin_session import Plugin, Session
+@pytest.mark.parametrize('ses_type', ['base64', 'jwt', 'fernet'])
+def test_session_save(app, client, ses_type):
+    from muffin_session import Plugin
 
-    session = Plugin(app, secret_key='123456')
+    session = Plugin(app, secret_key=SECRET, session_type=ses_type)
     scope = client.build_scope('/', method='GET')
     request = muffin.Request(scope)
 
@@ -147,15 +153,16 @@ def test_session_save(app, client):
     header = response.headers['Set-Cookie']
     assert header
 
-    value = header.split(';')[0].split('=')[1]
-    ses = Session('123456', value)
+    token = header.split(';')[0].split('=', 1)[1]
+    ses = session.create_from_token(token)
     assert ses['id'] == 1
 
 
-def test_session_login(app, client):
-    from muffin_session import Plugin, Session
+@pytest.mark.parametrize('ses_type', ['base64', 'jwt', 'fernet'])
+def test_session_login(app, client, ses_type):
+    from muffin_session import Plugin
 
-    session = Plugin(app, secret_key='123456')
+    session = Plugin(app, secret_key=SECRET, session_type=ses_type)
 
     scope = client.build_scope('/', method='GET')
     request = muffin.Request(scope)
@@ -164,15 +171,16 @@ def test_session_login(app, client):
     header = response.headers['Set-Cookie']
     assert header
 
-    value = header.split(';')[0].split('=')[1]
-    ses = Session('123456', value)
+    token = header.split(';')[0].split('=', 1)[1]
+    ses = session.create_from_token(token)
     assert ses['id'] == 42
 
 
-async def test_user_pass(app, client):
+@pytest.mark.parametrize('ses_type', ['base64', 'jwt', 'fernet'])
+async def test_user_pass(app, client, ses_type):
     from muffin_session import Plugin as Session
 
-    session = Session(app, secret_key='123456')
+    session = Session(app, secret_key=SECRET, session_type=ses_type)
 
     @app.route('/login')
     async def login(request):

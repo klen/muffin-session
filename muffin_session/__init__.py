@@ -5,7 +5,7 @@ import sys
 import typing as t
 from inspect import iscoroutine, isawaitable
 
-from asgi_sessions import Session
+from asgi_sessions import Session, SessionJWT, SessionFernet
 from asgi_tools.response import parse_response
 from muffin import Application, ResponseRedirect, Response, Request, ResponseError
 from muffin.plugins import BasePlugin
@@ -31,6 +31,7 @@ class Plugin(BasePlugin):
     name = 'session'
     defaults: t.Dict = {
         'auto_manage': False,
+        'session_type': 'jwt',
         'secret_key': 'InsecureSecret',  # Secret is using for secure the session
         'cookie_name': 'session',
         'cookie_params': {
@@ -68,7 +69,7 @@ class Plugin(BasePlugin):
         """Session auto load middleware, connecting from configuration."""
         session = self.load_from_request(request)
         response = await handler(request, receive, send)
-        if not session.pure and isinstance(response, Response):
+        if session.modified and isinstance(response, Response):
             self.save_to_response(session, response)
 
         return response
@@ -81,10 +82,22 @@ class Plugin(BasePlugin):
     def load_from_request(self, request: Request) -> Session:
         """Load a session from the request."""
         if SESSION_KEY not in request:
-            session = Session(self.cfg.secret_key, token=request.cookies.get(self.cfg.cookie_name))
-            request[SESSION_KEY] = session
+            request[SESSION_KEY] = self.create_from_token(
+                request.cookies.get(self.cfg.cookie_name))
 
         return request[SESSION_KEY]
+
+    def create_from_token(self, token: str = None) -> Session:
+        """Create a session from the given token."""
+        cfg = self.cfg
+        ses_type = cfg.session_type
+        if ses_type == 'jwt':
+            return SessionJWT(token, secret=cfg.secret_key)
+
+        if ses_type == 'fernet':
+            return SessionFernet(token, secret=cfg.secret_key)
+
+        return Session(token)
 
     def save_to_response(
             self, obj: t.Union[Session, Request], response: t.Any, **changes) -> Response:
