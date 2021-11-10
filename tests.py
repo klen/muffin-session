@@ -2,7 +2,7 @@ import muffin
 import pytest
 
 
-SECRET = 'SECRET78901234567890123456789012'
+SECRET = 'SECRET-TESTS'
 
 
 @pytest.fixture
