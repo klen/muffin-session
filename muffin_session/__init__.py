@@ -12,7 +12,7 @@ from muffin import (Application, Request, Response, ResponseError,
 from muffin.plugins import BasePlugin
 from muffin.typing import ASGIApp, Receive, Send
 
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 __project__ = "muffin-session"
 __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
