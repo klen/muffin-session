@@ -210,3 +210,20 @@ async def test_user_pass(app, client, ses_type):
 
     res = await client.get('/user-required-404', follow_redirect=False)
     assert res.status_code == 404
+
+
+async def test_redirect_html(app, client):
+    from muffin_session import Plugin as Session, ResponseHTMLRedirect
+
+    session = Session(app, secret_key=SECRET, redirect_type=ResponseHTMLRedirect)
+
+    @app.route('/')
+    @session.user_pass(location='/login')
+    async def anonimous(request):
+        return 'ANON'
+
+    res = await client.get('/')
+    assert res.status_code == 200
+    text = await res.text()
+    assert text
+    assert "/login" in text
