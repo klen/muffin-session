@@ -4,6 +4,7 @@ import functools
 import sys
 import typing as t
 from inspect import isawaitable, iscoroutine
+from urllib.parse import quote_plus
 
 from asgi_sessions import Session, SessionFernet, SessionJWT
 from asgi_tools.response import ResponseHTML, parse_response
@@ -214,7 +215,7 @@ class ResponseHTMLRedirect(ResponseHTML, BaseException):
         content_type: t.Optional[str] = None,
     ):
         """Prepare a content from the given location."""
-        location = (
+        content = (
             "<html><head>"
             f'<meta http-equiv="Refresh" content="0; URL={location}" />'
             f'<script>window.location = "{location}"</script></head>'
@@ -222,8 +223,9 @@ class ResponseHTMLRedirect(ResponseHTML, BaseException):
             "</body></html>"
         )
         super().__init__(
-            content=location,
+            content=content,
             status_code=status_code,
             headers=headers,
             content_type=content_type,
         )
+        self.headers["location"] = quote_plus(location, safe=":/%#?&=@[]!$&'()*+,;")

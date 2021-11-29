@@ -224,6 +224,7 @@ async def test_redirect_html(app, client):
 
     res = await client.get('/')
     assert res.status_code == 200
+    assert res.headers['location'] == '/login'
     text = await res.text()
     assert text
     assert "/login" in text
