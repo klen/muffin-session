@@ -13,7 +13,7 @@ from asgi_tools.types import TASGIReceive, TASGISend, TResponseApp, TVFn
 from muffin import Application, Request, Response, ResponseError, ResponseRedirect
 from muffin.plugins import BasePlugin
 
-__version__ = "2.2.1"
+__version__ = "2.3.0"
 __project__ = "muffin-session"
 __author__ = "Kirill Klenov <horneds@gmail.com>"
 __license__ = "MIT"
