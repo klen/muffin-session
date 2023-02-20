@@ -2,16 +2,16 @@
 
 import functools
 import sys
-import typing as t
 from inspect import isawaitable, iscoroutine
+from typing import (Any, Callable, Dict, Generic, Literal, Mapping, Optional, TypeVar, Union,
+                    overload)
 from urllib.parse import quote_plus
 
 from asgi_sessions import Session, SessionFernet, SessionJWT
 from asgi_tools.response import ResponseHTML, parse_response
-from muffin import (Application, Request, Response, ResponseError,
-                    ResponseRedirect)
+from asgi_tools.types import TASGIReceive, TASGISend, TResponseApp, TVFn
+from muffin import Application, Request, Response, ResponseError, ResponseRedirect
 from muffin.plugins import BasePlugin
-from muffin.typing import ASGIApp, Receive, Send
 
 __version__ = "2.2.1"
 __project__ = "muffin-session"
@@ -22,8 +22,6 @@ __license__ = "MIT"
 SESSION_KEY = "session"
 USER_KEY = "user"
 
-F = t.TypeVar("F", bound=t.Callable)
-
 __all__ = "Plugin", "ResponseHTMLRedirect"
 
 
@@ -32,7 +30,7 @@ class Plugin(BasePlugin):
     """Provide session's engine for Muffin."""
 
     name = "session"
-    defaults: t.Dict = {
+    defaults: Mapping[str, Any] = {
         "auto_manage": False,
         "session_type": "jwt",
         "secret_key": "InsecureSecret",  # Secret is using for secure the session
@@ -69,8 +67,12 @@ class Plugin(BasePlugin):
             app.middleware(self.__middleware)
 
     async def __middleware(
-        self, handler: ASGIApp, request: Request, receive: Receive, send: Send
-    ):
+        self,
+        handler: TResponseApp,
+        request: Request,
+        receive: TASGIReceive,
+        send: TASGISend,
+    ) -> Response:
         """Session auto load middleware, connecting from configuration."""
         session = self.load_from_request(request)
         response = await handler(request, receive, send)
@@ -79,7 +81,7 @@ class Plugin(BasePlugin):
 
         return response
 
-    def user_loader(self, func: F) -> F:
+    def user_loader(self, func: TVFn) -> TVFn:
         """Register a function as user loader."""
         self._user_loader = func  # noqa
         return func
@@ -93,7 +95,7 @@ class Plugin(BasePlugin):
 
         return request[SESSION_KEY]
 
-    def create_from_token(self, token: str = None) -> Session:
+    def create_from_token(self, token: Optional[str] = None) -> Session:
         """Create a session from the given token."""
         cfg = self.cfg
         ses_type = cfg.session_type
@@ -106,7 +108,7 @@ class Plugin(BasePlugin):
         return Session(token)
 
     def save_to_response(
-        self, obj: t.Union[Session, Request], response: t.Any, **changes
+        self, obj: Union[Session, Request], response, **changes
     ) -> Response:
         """Save session to response cookies."""
         if isinstance(obj, Request):
@@ -120,7 +122,7 @@ class Plugin(BasePlugin):
         )
         return response
 
-    async def load_user(self, request):
+    async def load_user(self, request: Request) -> Any:
         """Load user from request."""
         if USER_KEY not in request:
             session = self.load_from_request(request)
@@ -136,10 +138,10 @@ class Plugin(BasePlugin):
 
     def user_pass(
         self,
-        checker: t.Callable = None,
-        location: t.Union[str, t.Callable[[Request], str], ResponseError] = None,
+        checker: Optional[Callable] = None,
+        location: Optional[Union[str, Callable[[Request], str], ResponseError]] = None,
         **rkwargs,
-    ):
+    ) -> Callable[[TVFn], TVFn]:
         """Check that a user is logged and pass conditions."""
 
         def wrapper(view):
@@ -155,10 +157,10 @@ class Plugin(BasePlugin):
     async def check_user(
         self,
         request: Request,
-        checker: t.Callable = None,
-        location: t.Union[str, t.Callable] = None,
+        checker: Optional[Callable] = None,
+        location: Optional[Union[str, Callable]] = None,
         **response_params,
-    ) -> t.Any:
+    ):
         """Check for user is logged and pass the given checker.
 
         :param checker: user checker function, defaults to default_user_checker
@@ -182,8 +184,8 @@ class Plugin(BasePlugin):
         return user
 
     def login(
-        self, request: Request, ident: str, *, response: t.Any = None
-    ) -> t.Optional[Response]:
+        self, request: Request, ident: str, *, response: Any = None
+    ) -> Optional[Response]:
         """Store user ID in the session."""
         ses = self.load_from_request(request)
         ses["id"] = ident
@@ -191,9 +193,7 @@ class Plugin(BasePlugin):
             response = self.save_to_response(ses, response)
         return response
 
-    def logout(
-        self, request: Request, *, response: t.Any = None
-    ) -> t.Optional[Response]:
+    def logout(self, request: Request, *, response: Any = None) -> Optional[Response]:
         """Logout an user."""
         ses = self.load_from_request(request)
         if "id" in ses:
@@ -210,9 +210,9 @@ class ResponseHTMLRedirect(ResponseHTML, BaseException):
     def __init__(
         self,
         location: str,
-        status_code: int = None,
-        headers: dict = None,
-        content_type: t.Optional[str] = None,
+        status_code: Optional[int] = None,
+        headers: Optional[Dict] = None,
+        content_type: Optional[str] = None,
     ):
         """Prepare a content from the given location."""
         content = (
