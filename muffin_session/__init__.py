@@ -8,7 +8,7 @@ from urllib.parse import quote_plus
 
 from asgi_sessions import Session, SessionFernet, SessionJWT
 from asgi_tools.response import ResponseHTML, parse_response
-from asgi_tools.types import TASGIReceive, TASGISend, TResponseApp, TVFn
+from asgi_tools.types import TASGIReceive, TASGISend, TVCallable
 from muffin import Application, Request, Response, ResponseError, ResponseRedirect
 from muffin.plugins import BasePlugin
 
@@ -67,7 +67,7 @@ class Plugin(BasePlugin):
 
     async def __middleware(
         self,
-        handler: TResponseApp,
+        handler: Callable,
         request: Request,
         receive: TASGIReceive,
         send: TASGISend,
@@ -80,7 +80,7 @@ class Plugin(BasePlugin):
 
         return response
 
-    def user_loader(self, func: TVFn) -> TVFn:
+    def user_loader(self, func: TVCallable) -> TVCallable:
         """Register a function as user loader."""
         self._user_loader = func  # noqa
         return func
@@ -140,7 +140,7 @@ class Plugin(BasePlugin):
         checker: Optional[Callable] = None,
         location: Optional[Union[str, Callable[[Request], str], ResponseError]] = None,
         **rkwargs,
-    ) -> Callable[[TVFn], TVFn]:
+    ) -> Callable[[TVCallable], TVCallable]:
         """Check that a user is logged and pass conditions."""
 
         def wrapper(view):
