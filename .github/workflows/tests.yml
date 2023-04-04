@@ -31,13 +31,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Check code
-      run: poetry run ruff muffin_rest
+      run: poetry run ruff muffin_session
 
     - name: Check typing
       run: poetry run mypy
 
     - name: Test with pytest
-      run: poetry run pytest tests
+      run: poetry run pytest
 
   notify:
     runs-on: ubuntu-latest
