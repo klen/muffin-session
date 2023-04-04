@@ -1,0 +1,84 @@
+[tool.poetry]
+name = "muffin-session"
+version = "2.3.4"
+description = "Signed Cookie-Based HTTP sessions for the Muffin framework"
+readme = "README.rst"
+homepage = "https://github.com/klen/muffin-session"
+repository = "https://github.com/klen/muffin-session"
+authors = ["Kirill Klenov <horneds@gmail.com>"]
+license = "MIT"
+keywords = ["asyncio", "trio", "asgi", "muffin", "web", "cookie", "sessions", "session"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Internet :: WWW/HTTP",
+  "Framework :: AsyncIO",
+  "Framework :: Trio",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+muffin = "^0"
+asgi-sessions = {version = "^1", extras = ["jwt"]}
+
+# Optional dependencies
+pyjwt = {version = "^2", optional = true}
+cryptography = {version = "^40", optional = true}
+
+[tool.poetry.extras]
+jwt = ["pyjwt"]
+fernet = ["cryptography"]
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+cryptography = "^40"
+ipdb = "*"
+pre-commit = "*"
+pyjwt = "^2"
+pytest = "*"
+pytest-aio = {version = "*", extras = ["curio", "trio"]}
+pytest-mypy = "*"
+ruff = "*"
+
+[tool.pytest.ini_options]
+addopts = "-lxsv tests.py"
+log_cli = true
+
+[tool.mypy]
+packages = ["muffin_session"]
+install_types = true
+non_interactive = true
+ignore_missing_imports = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py38,py39,py310,py311,pypy39
+
+[testenv]
+deps = -e .[tests]
+commands =
+	pytest --mypy tests.py
+
+[testenv:pypy39]
+deps = -e .[tests]
+commands =
+	pytest tests.py
+"""
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = ["ALL"]
+ignore = ["ARG", "D", "UP", "ANN", "DJ", "EM", "COM", "RSE", "SLF", "RET", "S101", "PLR2004", "PLR0912", "N804", "A003", "TRY003"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

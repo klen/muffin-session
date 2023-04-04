@@ -17,32 +17,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
-    - name: Checkout changes
-      uses: actions/checkout@main
+    - uses: actions/checkout@main
+    - name: install poetry
+      run: pipx install poetry
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@main
       with:
+        cache: poetry
         python-version: ${{ matrix.python-version }}
 
-    - name: Cache env
-      id: cache-env
-      uses: actions/cache@main
-      with:
-        path: env
-        key: ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements/requirements.txt', 'requirements/requirements-tests.txt') }}
+    - name: Check code
+      run: poetry run ruff muffin_rest
 
-    - name: Install requirements
-      run: |
-        python -m venv env
-        env/bin/pip install -e .[tests]
-      if: steps.cache-env.outputs.cache-hit != 'true'
+    - name: Check typing
+      run: poetry run mypy
 
     - name: Test with pytest
-      run: env/bin/pytest tests.py
+      run: poetry run pytest tests
 
   notify:
     runs-on: ubuntu-latest

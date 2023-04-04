@@ -35,7 +35,7 @@ Features
 Requirements
 =============
 
-- python >= 3.7
+- python >= 3.8
 
 .. _installation:
 
@@ -45,6 +45,9 @@ Installation
 **Muffin-Session** should be installed using pip: ::
 
     pip install muffin-session
+
+    # Optional extras
+    pip install muffin-session[fernet]
 
 .. _usage:
 
@@ -109,7 +112,7 @@ Usage
 Options
 -------
 
-=========================== =========================== =========================== 
+=========================== =========================== ===========================
 Name                        Default value               Description
 --------------------------- --------------------------- ---------------------------
 **session_type**            ``"jwt"``                   Session type (``base64|jwt|fernet``)
@@ -119,7 +122,7 @@ Name                        Default value               Description
 **cookie_params**                                       Sessions's cookie params (``{'path': '/', 'max-age': None, 'samesite': 'lax', 'secure': False}``)
 **default_user_checker**    ``lambda x: True``          A function to check a logged user
 **login_url**               ``"/login"``                An URL to redirect anonymous users (it may be a function which accept ``Request`` and returns a string)
-=========================== =========================== =========================== 
+=========================== =========================== ===========================
 
 
 You are able to provide the options when you are initiliazing the plugin:

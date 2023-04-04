@@ -1,4 +1,0 @@
-pytest
-pytest-aio[curio,trio]
-pytest-mypy
-cryptography

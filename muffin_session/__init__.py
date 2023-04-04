@@ -1,22 +1,19 @@
 """Support session with Muffin framework."""
+from __future__ import annotations
 
 import functools
 import sys
 from inspect import isawaitable, iscoroutine
-from typing import Any, Callable, Dict, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Optional, Union
 from urllib.parse import quote_plus
 
 from asgi_sessions import Session, SessionFernet, SessionJWT
 from asgi_tools.response import ResponseHTML, parse_response
-from asgi_tools.types import TASGIReceive, TASGISend, TVCallable
 from muffin import Application, Request, Response, ResponseError, ResponseRedirect
 from muffin.plugins import BasePlugin
 
-__version__ = "2.3.4"
-__project__ = "muffin-session"
-__author__ = "Kirill Klenov <horneds@gmail.com>"
-__license__ = "MIT"
-
+if TYPE_CHECKING:
+    from asgi_tools.types import TASGIReceive, TASGISend, TVCallable
 
 SESSION_KEY = "session"
 USER_KEY = "user"
@@ -53,13 +50,13 @@ class Plugin(BasePlugin):
         """Initialize the plugin."""
         super().setup(app, **options)
 
-        if self.cfg.secret_key == "InsecureSecret":
+        if self.cfg.secret_key == "InsecureSecret":  # noqa:
             app.logger.warning(
                 "Use insecure secret key. "
                 "Change SESSION_SECRET_KEY option in your app configuration."
             )
 
-        self._user_loader = lambda id_: id_  # noqa
+        self._user_loader = lambda id_: id_
 
         # Install middleware if auto managed
         if self.cfg.auto_manage:
@@ -82,7 +79,7 @@ class Plugin(BasePlugin):
 
     def user_loader(self, func: TVCallable) -> TVCallable:
         """Register a function as user loader."""
-        self._user_loader = func  # noqa
+        self._user_loader = func
         return func
 
     def load_from_request(self, request: Request) -> Session:
@@ -126,7 +123,7 @@ class Plugin(BasePlugin):
         if USER_KEY not in request:
             session = self.load_from_request(request)
             if "id" not in session:
-                return
+                return None
 
             user = self._user_loader(session["id"])
             if isawaitable(user):
@@ -140,7 +137,7 @@ class Plugin(BasePlugin):
         checker: Optional[Callable] = None,
         location: Optional[Union[str, Callable[[Request], str], ResponseError]] = None,
         **rkwargs,
-    ) -> Callable[[TVCallable], TVCallable]:
+    ) -> Callable[[Callable], Callable]:
         """Check that a user is logged and pass conditions."""
 
         def wrapper(view):
@@ -183,13 +180,13 @@ class Plugin(BasePlugin):
         return user
 
     def login(
-        self, request: Request, ident: str, *, response: Any = None
+        self, request: Request, ident: Any, *, response: Any = None
     ) -> Optional[Response]:
         """Store user ID in the session."""
         ses = self.load_from_request(request)
         ses["id"] = ident
         if response is not None:
-            response = self.save_to_response(ses, response)
+            return self.save_to_response(ses, response)
         return response
 
     def logout(self, request: Request, *, response: Any = None) -> Optional[Response]:
@@ -198,7 +195,7 @@ class Plugin(BasePlugin):
         if "id" in ses:
             del ses["id"]
         if response is not None:
-            response = self.save_to_response(ses, response)
+            return self.save_to_response(ses, response)
         return response
 
 
@@ -218,7 +215,8 @@ class ResponseHTMLRedirect(ResponseHTML, BaseException):
             "<html><head>"
             f'<meta http-equiv="Refresh" content="0; URL={location}" />'
             f'<script>window.location = "{location}"</script></head>'
-            f'<body>Please click <a href="{location}">here</a> if you are not redirected within a few seconds'
+            f'<body>Please click <a href="{location}">here</a> '
+            "if you are not redirected within a few seconds"
             "</body></html>"
         )
         super().__init__(
