@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "muffin-session"
-version = "2.3.4"
+version = "2.4.0"
 description = "Signed Cookie-Based HTTP sessions for the Muffin framework"
 readme = "README.rst"
 homepage = "https://github.com/klen/muffin-session"
