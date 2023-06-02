@@ -30,7 +30,7 @@ asgi-sessions = {version = "^1", extras = ["jwt"]}
 
 # Optional dependencies
 pyjwt = {version = "^2", optional = true}
-cryptography = {version = "^40", optional = true}
+cryptography = {version = ">=40,<42", optional = true}
 
 [tool.poetry.extras]
 jwt = ["pyjwt"]
@@ -38,7 +38,7 @@ fernet = ["cryptography"]
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
-cryptography = "^40"
+cryptography = ">=40,<42"
 ipdb = "*"
 pre-commit = "*"
 pyjwt = "^2"
