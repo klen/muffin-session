@@ -26,11 +26,11 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 muffin = "^0"
-asgi-sessions = {version = "^1", extras = ["jwt"]}
+asgi-sessions = { version = "^1", extras = ["jwt"] }
 
 # Optional dependencies
-pyjwt = {version = "^2", optional = true}
-cryptography = {version = "^40", optional = true}
+pyjwt = { version = "*", optional = true }
+cryptography = { version = "*", optional = true }
 
 [tool.poetry.extras]
 jwt = ["pyjwt"]
@@ -38,12 +38,12 @@ fernet = ["cryptography"]
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
-cryptography = "^40"
+cryptography = "*"
 ipdb = "*"
 pre-commit = "*"
-pyjwt = "^2"
+pyjwt = "*"
 pytest = "*"
-pytest-aio = {version = "*", extras = ["curio", "trio"]}
+pytest-aio = { version = "*", extras = ["curio", "trio"] }
 pytest-mypy = "*"
 ruff = "*"
 
@@ -77,7 +77,26 @@ commands =
 line-length = 100
 target-version = "py38"
 select = ["ALL"]
-ignore = ["ARG", "D", "UP", "ANN", "DJ", "EM", "COM", "RSE", "SLF", "RET", "S101", "PLR2004", "PLR0912", "N804", "A003", "TRY003"]
+ignore = [
+  "ARG",
+  "D",
+  "UP",
+  "ANN",
+  "DJ",
+  "EM",
+  "COM",
+  "RSE",
+  "SLF",
+  "RET",
+  "S101",
+  "PLR2004",
+  "PLR0912",
+  "N804",
+  "A003",
+  "TRY003",
+  "TD",
+  "FIX",
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
