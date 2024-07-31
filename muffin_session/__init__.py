@@ -5,7 +5,7 @@ from __future__ import annotations
 import functools
 import sys
 from inspect import isawaitable, iscoroutine
-from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 from urllib.parse import quote_plus
 
 from asgi_sessions import Session, SessionFernet, SessionJWT
@@ -26,7 +26,7 @@ class Plugin(BasePlugin):
     """Provide session's engine for Muffin."""
 
     name = "session"
-    defaults: Mapping[str, Any] = {
+    defaults = {
         "auto_manage": False,
         "session_type": "jwt",
         "secret_key": "InsecureSecret",  # Secret is using for secure the session
@@ -206,7 +206,7 @@ class ResponseHTMLRedirect(ResponseHTML, BaseException):
         self,
         location: str,
         status_code: Optional[int] = None,
-        headers: Optional[Dict] = None,
+        headers: Optional[dict] = None,
         content_type: Optional[str] = None,
     ):
         """Prepare a content from the given location."""
