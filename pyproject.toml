@@ -14,7 +14,6 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -24,7 +23,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 muffin = "^0"
 asgi-sessions = { version = "^1", extras = ["jwt"] }
 
@@ -60,7 +59,7 @@ ignore_missing_imports = true
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py38,py39,py310,py311,pypy39
+envlist = py39,py310,py311,py312,pypy39
 
 [testenv]
 deps = -e .[tests]
@@ -75,7 +74,9 @@ commands =
 
 [tool.ruff]
 line-length = 100
-target-version = "py38"
+target-version = "py39"
+
+[tool.ruff.lint]
 select = ["ALL"]
 ignore = [
   "ARG",
