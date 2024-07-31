@@ -1,4 +1,5 @@
 """Support session with Muffin framework."""
+
 from __future__ import annotations
 
 import functools
@@ -22,7 +23,6 @@ __all__ = "Plugin", "ResponseHTMLRedirect"
 
 
 class Plugin(BasePlugin):
-
     """Provide session's engine for Muffin."""
 
     name = "session"
@@ -50,7 +50,7 @@ class Plugin(BasePlugin):
         """Initialize the plugin."""
         super().setup(app, **options)
 
-        if self.cfg.secret_key == "InsecureSecret":  # noqa:
+        if self.cfg.secret_key == "InsecureSecret":  # noqa: S105
             app.logger.warning(
                 "Use insecure secret key. "
                 "Change SESSION_SECRET_KEY option in your app configuration."
@@ -200,7 +200,6 @@ class Plugin(BasePlugin):
 
 
 class ResponseHTMLRedirect(ResponseHTML, BaseException):
-
     """Make redirect through HTML to save coookies."""
 
     def __init__(
