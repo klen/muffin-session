@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import functools
-import sys
 from inspect import isawaitable, iscoroutine
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable
 from urllib.parse import quote_plus
 
 from asgi_sessions import Session, SessionFernet, SessionJWT
@@ -41,10 +40,6 @@ class Plugin(BasePlugin):
         "login_url": "/login",
         "redirect_type": ResponseRedirect,
     }
-
-    # XXX: Python 3.7 (py37)
-    if sys.version_info < (3, 8):
-        del defaults["cookie_params"]["samesite"]
 
     def setup(self, app: Application, **options):
         """Initialize the plugin."""
@@ -91,7 +86,7 @@ class Plugin(BasePlugin):
 
         return request[SESSION_KEY]
 
-    def create_from_token(self, token: Optional[str] = None) -> Session:
+    def create_from_token(self, token: str | None = None) -> Session:
         """Create a session from the given token."""
         cfg = self.cfg
         ses_type = cfg.session_type
@@ -103,9 +98,7 @@ class Plugin(BasePlugin):
 
         return Session(token)
 
-    def save_to_response(
-        self, obj: Union[Session, Request], response, **changes
-    ) -> Response:
+    def save_to_response(self, obj: Session | Request, response, **changes) -> Response:
         """Save session to response cookies."""
         if isinstance(obj, Request):
             obj = self.load_from_request(obj)
@@ -134,8 +127,8 @@ class Plugin(BasePlugin):
 
     def user_pass(
         self,
-        checker: Optional[Callable] = None,
-        location: Optional[Union[str, Callable[[Request], str], ResponseError]] = None,
+        checker: Callable | None = None,
+        location: str | Callable[[Request], str] | ResponseError | None = None,
         **rkwargs,
     ) -> Callable[[Callable], Callable]:
         """Check that a user is logged and pass conditions."""
@@ -153,8 +146,8 @@ class Plugin(BasePlugin):
     async def check_user(
         self,
         request: Request,
-        checker: Optional[Callable] = None,
-        location: Optional[Union[str, Callable]] = None,
+        checker: Callable | None = None,
+        location: str | Callable | None = None,
         **response_params,
     ):
         """Check for user is logged and pass the given checker.
@@ -166,6 +159,7 @@ class Plugin(BasePlugin):
         """
         user = await self.load_user(request)
         checker = checker or self.cfg.default_user_checker
+        assert callable(checker), "Checker must be a callable"
         if not checker(user):
             redirect = location or self.cfg.login_url
             if isinstance(redirect, ResponseError):
@@ -181,7 +175,7 @@ class Plugin(BasePlugin):
 
     def login(
         self, request: Request, ident: Any, *, response: Any = None
-    ) -> Optional[Response]:
+    ) -> Response | None:
         """Store user ID in the session."""
         ses = self.load_from_request(request)
         ses["id"] = ident
@@ -189,7 +183,7 @@ class Plugin(BasePlugin):
             return self.save_to_response(ses, response)
         return response
 
-    def logout(self, request: Request, *, response: Any = None) -> Optional[Response]:
+    def logout(self, request: Request, *, response: Any = None) -> Response | None:
         """Logout an user."""
         ses = self.load_from_request(request)
         if "id" in ses:
@@ -205,9 +199,9 @@ class ResponseHTMLRedirect(ResponseHTML, BaseException):
     def __init__(
         self,
         location: str,
-        status_code: Optional[int] = None,
-        headers: Optional[dict] = None,
-        content_type: Optional[str] = None,
+        status_code: int | None = None,
+        headers: dict | None = None,
+        content_type: str | None = None,
     ):
         """Prepare a content from the given location."""
         content = (

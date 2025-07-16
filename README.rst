@@ -1,235 +1,200 @@
 Muffin-Session
 ##############
 
-.. _description:
-
-**Muffin-Session** -- Cookie-Based HTTP sessions for Muffin_ framework
-
-.. _badges:
+**Muffin-Session** — Cookie-based HTTP sessions for the Muffin_ framework.
 
 .. image:: https://github.com/klen/muffin-session/workflows/tests/badge.svg
     :target: https://github.com/klen/muffin-session/actions
-    :alt: Tests Status
+    :alt: Test Status
 
 .. image:: https://img.shields.io/pypi/v/muffin-session
     :target: https://pypi.org/project/muffin-session/
-    :alt: PYPI Version
+    :alt: PyPI Version
 
 .. image:: https://img.shields.io/pypi/pyversions/muffin-session
     :target: https://pypi.org/project/muffin-session/
-    :alt: Python Versions
-
-.. _contents:
+    :alt: Supported Python Versions
 
 .. contents::
+   :local:
 
-Features
+Overview
 ========
 
-* Supports base64 sessions
-* Supports ``JWT`` signed sessions
-* Supports ``Fernet`` encrypted sessions
+**Muffin-Session** provides a simple and flexible way to manage secure session data via cookies.
+It integrates seamlessly into Muffin apps with support for JWT, Fernet, and plain base64-encoded sessions.
 
-.. _requirements:
+Features
+--------
+
+- 🍪 Cookie-based session management
+- 🔐 Supports multiple session backends:
+  - Base64 (default)
+  - **JWT**-signed sessions
+  - **Fernet**-encrypted sessions
+- 🧠 User loader & login utilities
+- 🧩 Optional auto-managed middleware integration
 
 Requirements
-=============
+============
 
-- python >= 3.9
-
-.. _installation:
+- Python ≥ 3.10
+- Muffin ≥ 1.0
+- Optional: `cryptography` for Fernet sessions
 
 Installation
-=============
+============
 
-**Muffin-Session** should be installed using pip: ::
+Install via pip:
+
+.. code-block:: bash
 
     pip install muffin-session
 
-    # Optional extras
-    pip install muffin-session[fernet]
+Install with Fernet encryption support:
 
-.. _usage:
+.. code-block:: bash
+
+    pip install muffin-session[fernet]
 
 Usage
 =====
 
-1. Use it manually
+Manual integration
+------------------
 
 .. code-block:: python
 
     from muffin import Application, ResponseHTML
     from muffin_session import Plugin as Session
 
-    # Create Muffin Application
     app = Application('example')
 
-    # Initialize the plugin
-    # As alternative: session = Session(app, **options)
-    session = Session()
-    session.setup(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS')
+    session = Session(app, secret_key='REALLY_SECRET_KEY')
 
-    # Use it inside your handlers
     @app.route('/update')
-    async def update_session(request):
+    async def update(request):
         ses = session.load_from_request(request)
         ses['var'] = 'value'
-        response = ResponseHTML('Session has been updated')
+        response = ResponseHTML('Session updated.')
         session.save_to_response(ses, response)
-        return res
+        return response
 
     @app.route('/load')
-    async def load_session(request):
+    async def load(request):
         ses = session.load_from_request(request)
         return ses.get('var')
 
-2. Auto manage sessions (with middleware)
+
+Auto-managed sessions
+---------------------
 
 .. code-block:: python
 
-    from muffin import Application, ResponseHTML
+    from muffin import Application
     from muffin_session import Plugin as Session
 
-    # Create Muffin Application
     app = Application('example')
 
-    # Initialize the plugin
-    # As alternative: session = Session(app, **options)
     session = Session()
-    session.setup(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
+    session = Session(app, secret_key='REALLY_SECRET_KEY', auto_manage=True)
 
-    # Use it inside your handlers
     @app.route('/update')
-    async def update_session(request):
+    async def update(request):
         request.session['var'] = 'value'
-        return 'Session has been updated'
+        return 'Session updated.'
 
     @app.route('/load')
-    async def load_session(request):
+    async def load(request):
         return request.session.get('var')
 
+Configuration
+=============
 
-Options
--------
-
-=========================== =========================== ===========================
-Name                        Default value               Description
---------------------------- --------------------------- ---------------------------
-**session_type**            ``"jwt"``                   Session type (``base64|jwt|fernet``)
-**secret_key**              ``"InsecureSecret"``        A secret code to sign sessions
-**auto_manage**             ``False``                   Load/Save sessions automatically. Session will be loaded into ``request.session``
-**cookie_name**             ``"session"``               Sessions's cookie name (``session``)
-**cookie_params**                                       Sessions's cookie params (``{'path': '/', 'max-age': None, 'samesite': 'lax', 'secure': False}``)
-**default_user_checker**    ``lambda x: True``          A function to check a logged user
-**login_url**               ``"/login"``                An URL to redirect anonymous users (it may be a function which accept ``Request`` and returns a string)
-=========================== =========================== ===========================
-
-
-You are able to provide the options when you are initiliazing the plugin:
+You can pass options via `session.setup(...)` or set them in your application config using the `SESSION_` prefix:
 
 .. code-block:: python
 
-    session.setup(app, secret_key='123455', cookie_name='info')
+    SESSION_SECRET_KEY = 'REALLY_SECRET_KEY'
+    SESSION_COOKIE_NAME = 'muffin_session'
 
+Available Options
+-----------------
 
-Or setup it inside ``Muffin.Application`` config using the ``SESSION_`` prefix:
+=========================== =========================== ========================================================
+Option                      Default                     Description
+--------------------------- --------------------------- --------------------------------------------------------
+**session_type**            ``"jwt"``                   Backend type: ``"base64"``, ``"jwt"``, or ``"fernet"``
+**secret_key**              ``"InsecureSecret"``        Secret used to sign or encrypt sessions
+**auto_manage**             ``False``                   If enabled, session is auto-loaded into ``request.session``
+**cookie_name**             ``"session"``               Name of the session cookie
+**cookie_params**           see below                   Cookie options: path, max-age, samesite, secure
+**default_user_checker**    ``lambda x: True``          Function used to verify authenticated user
+**login_url**               ``"/login"``                Redirect URL or callable for unauthenticated users
+=========================== =========================== ========================================================
+
+Example
+=======
 
 .. code-block:: python
 
-   SESSION_SECRET_KEY = '123455'
-
-   SESSION_COOKIE_NAME = 'info'
-
-``Muffin.Application`` configuration options are case insensitive
-
-
-Examples
---------
-
-.. code-block:: python
-
-    from muffin import Application, ResponseHTML
+    from muffin import Application
     from muffin_session import Plugin as Session
 
-    # Create Muffin Application
     app = Application('example')
-
-    # Initialize the plugin
-    # As alternative: session = Session(app, **options)
-    session = Session()
-    session.setup(app, secret_key='REALLY_SECRET_KEY_FOR_SIGN_YOUR_SESSIONS', auto_manage=True)
+    session = Session(app, secret_key='REALLY_SECRET_KEY', auto_manage=True)
 
     @session.user_loader
-    async def load_user(ident):
-        """Define your own user loader. """
-        return await my_database_load_user_by_id(ident)
+    async def load_user(user_id):
+        return await db.get_user_by_id(user_id)
 
-    @app.register('/session')
+    @app.route('/session')
     async def get_session(request):
-        """ Load session and return it as JSON. """
         return dict(request.session)
 
-    @app.register('/admin')
+    @app.route('/admin')
     @session.user_pass(lambda user: user.is_admin)
     async def admin(request):
-        """Awailable for admins only. """
-        return 'TOP SECRET'
+        return 'Top secret admin page.'
 
-    @app.register('/login')
+    @app.route('/login')
     async def login(request):
-        """Save user id into the current session. """
-        # ...
-        session.login(request, current_user.pk)
-        return 'OK'
+        user = await authenticate(request)
+        session.login(request, user.id)
+        return 'Logged in.'
 
-    @app.register('/logout')
+    @app.route('/logout')
     async def logout(request):
-        """ Logout user. """
-        # ...
         session.logout(request)
-        return 'OK'
+        return 'Logged out.'
 
-    @app.register('/somewhere')
-    async def somewhere(request):
-        """ Do something and leave a flash message """
-        # ...
+    @app.route('/clear')
+    async def clear(request):
         request.session.clear()
-        return 'OK'
+        return 'Session cleared.'
 
-
-.. _bugtracker:
-
-Bug tracker
+Bug Tracker
 ===========
 
-If you have any suggestions, bug reports or
-annoyances please report them to the issue tracker
-at https://github.com/klen/muffin-session/issues
-
-.. _contributing:
+Found a bug or want to propose a feature?
+Please use the issue tracker at: https://github.com/klen/muffin-session/issues
 
 Contributing
 ============
 
-Development of Muffin-Session happens at: https://github.com/klen/muffin-session
-
-
-Contributors
-=============
-
-* klen_ (Kirill Klenov)
-
-.. _license:
+Want to contribute? PRs are welcome!
+Development happens at: https://github.com/klen/muffin-session
 
 License
-========
+=======
 
-Licensed under a `MIT license`_.
+This project is licensed under the MIT license. See `MIT license`_ for details.
 
-.. _links:
+Author
+======
 
+- Kirill Klenov (`klen`_) — https://github.com/klen
 
 .. _klen: https://github.com/klen
 .. _Muffin: https://github.com/klen/muffin
-
 .. _MIT license: http://opensource.org/licenses/MIT
