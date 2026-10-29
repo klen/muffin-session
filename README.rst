@@ -147,7 +147,8 @@ Option                      Default                          Description
 ``ResponseRedirect`` answers with ``307`` and an empty body. Use
 ``muffin_session.ResponseHTMLRedirect`` instead when the redirect has to keep cookies set by the
 same response (e.g. behind clients that drop ``Set-Cookie`` on redirects): it renders an HTML page
-with a meta refresh and a link, and stores the target in the ``location`` header.
+with a meta refresh and a link, and stores the target in the ``location`` header. Only relative and
+``http(s)`` targets are accepted; any other scheme raises ``ValueError``.
 
 Session backends
 ----------------
@@ -169,7 +170,7 @@ Session backends
   ``asgi-sessions``. Without ``cryptography``, creating a Fernet session raises
   ``RuntimeError: Install cryptography package to use fernet sessions.``
 - ``"base64"`` offers no integrity protection: a client can read and modify its own session
-  contents. Any value other than ``"jwt"``/``"fernet"`` falls back to this backend.
+  contents. Any other ``session_type`` value raises ``ValueError``.
 
 .. warning::
 
