@@ -41,9 +41,11 @@ class Plugin(BasePlugin):
         "redirect_type": ResponseRedirect,
     }
 
-    def setup(self, app: Application, **options):
+    _user_loader: Callable[[Any], Any]
+
+    def setup(self, app: Application, *, name: str | None = None, **options) -> bool:
         """Initialize the plugin."""
-        super().setup(app, **options)
+        initialized = super().setup(app, name=name, **options)
 
         if self.cfg.secret_key == "InsecureSecret":  # noqa: S105
             app.logger.warning(
@@ -56,6 +58,8 @@ class Plugin(BasePlugin):
         # Install middleware if auto managed
         if self.cfg.auto_manage:
             app.middleware(self.__middleware)
+
+        return initialized
 
     async def __middleware(
         self,
