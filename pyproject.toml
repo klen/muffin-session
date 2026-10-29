@@ -73,12 +73,11 @@ envlist = py311,py312,py313,py314,py315,pypy311
 [testenv]
 allowlist_externals = uv,pytest
 commands =
-  uv pip install --system -e .[dev]
+  uv pip install --system -e . --group dev
 	pytest tests.py
 """
 
 [tool.ruff]
-include = ["muffin_session", "tests.py"]
 line-length = 100
 target-version = "py311"
 exclude = [".venv"]
