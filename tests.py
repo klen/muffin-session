@@ -1,7 +1,7 @@
 import muffin
 import pytest
 
-SECRET = "SECRET-TESTS"
+SECRET = "SECRET-TESTS"  # noqa: S105
 
 
 @pytest.fixture
@@ -10,7 +10,7 @@ def app():
 
 
 @pytest.mark.parametrize("ses_type", ["base64", "jwt", "fernet"])
-async def test_session_manual(app, client, ses_type):
+async def test_session_manual(app, client, ses_type):  # noqa: PLR0915
     from muffin_session import Plugin as Session
 
     session = Session(app, secret_key=SECRET, session_type=ses_type)
@@ -31,9 +31,7 @@ async def test_session_manual(app, client, ses_type):
     async def auth_dyn(request):
         return request.user
 
-    res = await client.get(
-        "/auth_dyn", query={"target": "/another_page"}, follow_redirect=False
-    )
+    res = await client.get("/auth_dyn", query={"target": "/another_page"}, follow_redirect=False)
     assert res.status_code == 307
     assert res.headers["location"] == "/another_page"
 
@@ -231,3 +229,22 @@ async def test_redirect_html(app, client):
     text = await res.text()
     assert text
     assert "/login" in text
+
+
+def test_cookie_params(app, client):
+    from muffin_session import Plugin
+
+    session = Plugin(app, secret_key=SECRET)
+    request = muffin.Request(client.build_scope("/", method="GET"), None, None)
+
+    header = session.save_to_response(request, {"test": 42}).headers["Set-Cookie"]
+    assert "max-age" not in header.lower()
+    assert "Path=/" in header
+    assert "SameSite=lax" in header
+    assert "Secure" not in header
+
+    session.cfg.cookie_params.update({"secure": True, "samesite": "strict", "max-age": 3600})
+    header = session.save_to_response(request, {"test": 42}).headers["Set-Cookie"]
+    assert "Max-Age=3600" in header
+    assert "SameSite=strict" in header
+    assert "Secure" in header
