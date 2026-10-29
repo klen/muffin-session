@@ -229,3 +229,22 @@ async def test_redirect_html(app, client):
     text = await res.text()
     assert text
     assert "/login" in text
+
+
+def test_cookie_params(app, client):
+    from muffin_session import Plugin
+
+    session = Plugin(app, secret_key=SECRET)
+    request = muffin.Request(client.build_scope("/", method="GET"), None, None)
+
+    header = session.save_to_response(request, {"test": 42}).headers["Set-Cookie"]
+    assert "max-age" not in header.lower()
+    assert "Path=/" in header
+    assert "SameSite=lax" in header
+    assert "Secure" not in header
+
+    session.cfg.cookie_params.update({"secure": True, "samesite": "strict", "max-age": 3600})
+    header = session.save_to_response(request, {"test": 42}).headers["Set-Cookie"]
+    assert "Max-Age=3600" in header
+    assert "SameSite=strict" in header
+    assert "Secure" in header

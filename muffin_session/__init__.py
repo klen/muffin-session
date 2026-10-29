@@ -84,9 +84,7 @@ class Plugin(BasePlugin):
     def load_from_request(self, request: Request) -> Session:
         """Load a session from the request."""
         if SESSION_KEY not in request:
-            request[SESSION_KEY] = self.create_from_token(
-                request.cookies.get(self.cfg.cookie_name)
-            )
+            request[SESSION_KEY] = self.create_from_token(request.cookies.get(self.cfg.cookie_name))
 
         return request[SESSION_KEY]
 
@@ -110,9 +108,9 @@ class Plugin(BasePlugin):
             obj[name] = value
         if not isinstance(response, Response):
             response = parse_response(response)
-        response.headers["Set-Cookie"] = obj.cookie(
-            self.cfg.cookie_name, self.cfg.cookie_params
-        )
+        # Drop unset options (e.g. max-age: None) instead of rendering "Max-Age=None"
+        cookie_params = {k: v for k, v in self.cfg.cookie_params.items() if v is not None}
+        response.headers["Set-Cookie"] = obj.cookie(self.cfg.cookie_name, cookie_params)
         return response
 
     async def load_user(self, request: Request) -> Any:
@@ -177,9 +175,7 @@ class Plugin(BasePlugin):
 
         return user
 
-    def login(
-        self, request: Request, ident: Any, *, response: Any = None
-    ) -> Response | None:
+    def login(self, request: Request, ident: Any, *, response: Any = None) -> Response | None:
         """Store user ID in the session."""
         ses = self.load_from_request(request)
         ses["id"] = ident
