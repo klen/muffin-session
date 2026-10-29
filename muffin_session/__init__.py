@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import functools
+from html import escape
 from inspect import isawaitable, iscoroutine
 from typing import TYPE_CHECKING, Any, Callable
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
+import jwt
 from asgi_sessions import Session, SessionFernet, SessionJWT
 from asgi_tools.response import ResponseHTML, parse_response
 from muffin import Application, Request, Response, ResponseError, ResponseRedirect
@@ -70,9 +72,17 @@ class Plugin(BasePlugin):
     ) -> Response:
         """Session auto load middleware, connecting from configuration."""
         session = self.load_from_request(request)
-        response = await handler(request, receive, send)
-        if session.modified and isinstance(response, Response):
-            self.save_to_response(session, response)
+        before = dict(session)
+        response = None
+        try:
+            response = await handler(request, receive, send)
+        except (ResponseError, ResponseRedirect, ResponseHTMLRedirect) as exc:
+            response = exc
+            raise
+        finally:
+            # Save raised redirects too; Session.modified misses dict.update().
+            if isinstance(response, Response) and dict(session) != before:
+                self.save_to_response(session, response)
 
         return response
 
@@ -89,7 +99,14 @@ class Plugin(BasePlugin):
         return request[SESSION_KEY]
 
     def create_from_token(self, token: str | None = None) -> Session:
-        """Create a session from the given token."""
+        """Create a session from the given token, ignoring unreadable cookies."""
+        try:
+            return self._create_session(token)
+        except (TypeError, ValueError, jwt.InvalidTokenError):
+            # A malformed cookie starts a new session instead of failing the request.
+            return self._create_session(None)
+
+    def _create_session(self, token: str | None) -> Session:
         cfg = self.cfg
         ses_type = cfg.session_type
         if ses_type == "jwt":
@@ -98,7 +115,10 @@ class Plugin(BasePlugin):
         if ses_type == "fernet":
             return SessionFernet(token, secret=cfg.secret_key)
 
-        return Session(token)
+        if ses_type == "base64":
+            return Session(token)
+
+        raise ValueError(f"Unknown session_type: {ses_type!r}")
 
     def save_to_response(self, obj: Session | Request, response, **changes) -> Response:
         """Save session to response cookies."""
@@ -204,11 +224,15 @@ class ResponseHTMLRedirect(ResponseHTML, BaseException):
         content_type: str | None = None,
     ):
         """Prepare a content from the given location."""
+        scheme = urlparse(location).scheme
+        if scheme and scheme not in ("http", "https"):
+            raise ValueError(f"Unsupported redirect location: {location!r}")
+
+        url = escape(location)
         content = (
             "<html><head>"
-            f'<meta http-equiv="Refresh" content="0; URL={location}" />'
-            f'<script>window.location = "{location}"</script></head>'
-            f'<body>Please click <a href="{location}">here</a> '
+            f'<meta http-equiv="Refresh" content="0; URL={url}" />'
+            f'</head><body>Please click <a href="{url}">here</a> '
             "if you are not redirected within a few seconds"
             "</body></html>"
         )

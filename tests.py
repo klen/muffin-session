@@ -140,6 +140,63 @@ async def test_session_middleware(app, client, ses_type):
 
 
 @pytest.mark.parametrize("ses_type", ["base64", "jwt", "fernet"])
+async def test_session_middleware_save(app, client, ses_type):
+    from muffin_session import Plugin
+
+    Plugin(app, auto_manage=True, secret_key=SECRET, session_type=ses_type)
+
+    @app.route("/update")
+    async def update(request):
+        request.session.update({"user": "mike"})
+        return "ok"
+
+    @app.route("/login")
+    async def login(request):
+        request.session["id"] = "mike"
+        raise muffin.ResponseRedirect("/session")
+
+    @app.route("/session")
+    async def get_session(request):
+        return dict(request.session)
+
+    res = await client.get("/update")
+    assert res.status_code == 200
+    res = await client.get("/session")
+    assert await res.json() == {"user": "mike"}
+
+    res = await client.get("/login", follow_redirect=False)
+    assert res.status_code == 307
+    assert "Set-Cookie" in res.headers
+    res = await client.get("/session")
+    assert await res.json() == {"user": "mike", "id": "mike"}
+
+
+@pytest.mark.parametrize(
+    ("ses_type", "token"),
+    [
+        ("base64", "garbage"),
+        ("base64", "WzEsMl0"),  # base64 of a JSON list
+        ("jwt", "eyJhbGciOiJub25lIn0.eyJpZCI6MX0."),  # alg none
+        ("jwt", "garbage"),
+        ("fernet", "garbage"),
+    ],
+)
+def test_session_ignores_bad_cookie(app, ses_type, token):
+    from muffin_session import Plugin
+
+    session = Plugin(app, secret_key=SECRET, session_type=ses_type)
+    assert dict(session.create_from_token(token)) == {}
+
+
+def test_session_unknown_type(app):
+    from muffin_session import Plugin
+
+    session = Plugin(app, secret_key=SECRET, session_type="JWT")
+    with pytest.raises(ValueError, match="Unknown session_type"):
+        session.create_from_token()
+
+
+@pytest.mark.parametrize("ses_type", ["base64", "jwt", "fernet"])
 def test_session_save(app, client, ses_type):
     from muffin_session import Plugin
 
@@ -229,6 +286,18 @@ async def test_redirect_html(app, client):
     text = await res.text()
     assert text
     assert "/login" in text
+
+
+def test_redirect_html_escapes():
+    from muffin_session import ResponseHTMLRedirect
+
+    with pytest.raises(ValueError, match="Unsupported redirect location"):
+        ResponseHTMLRedirect("javascript:alert(1)")
+
+    response = ResponseHTMLRedirect('/login?next="><script>alert(1)</script>')
+    content = response.content.decode()
+    assert "<script>" not in content
+    assert "&quot;&gt;&lt;script&gt;" in content
 
 
 def test_cookie_params(app, client):
