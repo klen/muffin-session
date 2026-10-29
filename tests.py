@@ -1,7 +1,7 @@
 import muffin
 import pytest
 
-SECRET = "SECRET-TESTS"
+SECRET = "SECRET-TESTS"  # noqa: S105
 
 
 @pytest.fixture
@@ -10,7 +10,7 @@ def app():
 
 
 @pytest.mark.parametrize("ses_type", ["base64", "jwt", "fernet"])
-async def test_session_manual(app, client, ses_type):
+async def test_session_manual(app, client, ses_type):  # noqa: PLR0915
     from muffin_session import Plugin as Session
 
     session = Session(app, secret_key=SECRET, session_type=ses_type)
@@ -31,9 +31,7 @@ async def test_session_manual(app, client, ses_type):
     async def auth_dyn(request):
         return request.user
 
-    res = await client.get(
-        "/auth_dyn", query={"target": "/another_page"}, follow_redirect=False
-    )
+    res = await client.get("/auth_dyn", query={"target": "/another_page"}, follow_redirect=False)
     assert res.status_code == 307
     assert res.headers["location"] == "/another_page"
 
